@@ -1,8 +1,39 @@
 #!/bin/bash
 
+echo "====================================if $CONTAINER_CMD run -d --name monitor \
+  -p 8000:8000 \
+  -v "$CURRENT_DIR:/data" \
+  -e DB_PATH="/data/data.db" \
+  internet-monitor; then
+    echo "✅ Container erfolgreich gestartet"
+    echo ""
+    echo "🌐 Internet Monitor ist verfügbar unter:"
+    echo "   http://localhost:8000"
+    echo ""
+    echo "📊 Datenbank wird gespeichert in:"
+    echo "   $CURRENT_DIR/data.db"
+    echo ""
+    echo "📋 Container-Status prüfen:"
+    echo "   $CONTAINER_CMD logs -f monitor"
+    echo "============================================"
+else
+    echo "❌ Fehler beim Starten des Containers"
+    exit 1
+firnet Monitor - Build und Deploy"
 echo "============================================"
-echo "Internet Monitor - Build und Deploy"
-echo "============================================"
+
+# Container-Runtime automatisch erkennen
+if command -v docker >/dev/null 2>&1; then
+    CONTAINER_CMD="docker"
+    echo "🐳 Verwende Docker als Container-Runtime"
+elif command -v podman >/dev/null 2>&1; then
+    CONTAINER_CMD="podman"
+    echo "🦭 Verwende Podman als Container-Runtime"
+else
+    echo "❌ Weder Docker noch Podman gefunden!"
+    echo "   Bitte installiere Docker oder Podman"
+    exit 1
+fi
 
 # Aktuelles Verzeichnis für Datenbank-Volume
 CURRENT_DIR="$(pwd)"
@@ -10,27 +41,27 @@ echo "📂 Arbeitsverzeichnis: $CURRENT_DIR"
 
 # Container stoppen und entfernen
 echo "🛑 Stoppe vorhandenen Container..."
-if podman stop monitor 2>/dev/null; then
+if $CONTAINER_CMD stop monitor 2>/dev/null; then
     echo "✅ Container 'monitor' gestoppt"
 else
     echo "ℹ️  Kein laufender Container 'monitor' gefunden"
 fi
 
 echo "🗑️  Entferne vorhandenen Container..."
-if podman rm monitor 2>/dev/null; then
+if $CONTAINER_CMD rm monitor 2>/dev/null; then
     echo "✅ Container 'monitor' entfernt"
 else
     echo "ℹ️  Kein Container 'monitor' zum Entfernen gefunden"
 fi
 
 # Image neu bauen
-echo "🔨 Baue Docker Image..."
+echo "🔨 Baue Container Image..."
 echo "   Lade Basis-Image herunter..."
-podman pull python:3.12-alpine
-if podman build -t internet-monitor .; then
-    echo "✅ Docker Image erfolgreich erstellt"
+$CONTAINER_CMD pull python:3.12-alpine
+if $CONTAINER_CMD build -t internet-monitor .; then
+    echo "✅ Container Image erfolgreich erstellt"
 else
-    echo "❌ Fehler beim Erstellen des Docker Images"
+    echo "❌ Fehler beim Erstellen des Container Images"
     exit 1
 fi
 
