@@ -46,6 +46,18 @@ podman run --rm -p 8000:8000 -v $(pwd):/app internet-monitor
 
 ## 🚀 Schnellstart
 
+### 📦 Docker Hub (Empfohlen)
+
+```bash
+# Direkt vom Docker Hub verwenden
+docker run -d --name internet-monitor -p 8000:8000 syntaxsorcerer7/internet-monitor
+
+# Oder mit lokaler Datenpersistierung
+docker run -d --name internet-monitor -p 8000:8000 -v $(pwd)/data:/app syntaxsorcerer7/internet-monitor
+```
+
+### 🏗️ Lokaler Build
+
 ```bash
 # Repository klonen
 git clone <repository-url>
@@ -122,7 +134,7 @@ internet-check/
 
 ## 🛠️ Technische Details
 
-### 🏗️ Architektur
+## 🏗️ Architektur
 
 Das Projekt ist jetzt modular strukturiert:
 
@@ -142,6 +154,13 @@ Das Projekt ist jetzt modular strukturiert:
   - Python 3.12 mit minimalen Dependencies (Flask, Requests)
   - UTC-Zeitzone für konsistente Timestamps
   - Automatisches Kopieren der Quellcode-Dateien
+  - Multi-Platform Support (AMD64, ARM64)
+
+- **CI/CD** (`.github/workflows/`): Automatisierte Container-Builds
+  - Automatischer Build und Push zu Docker Hub bei commits
+  - Multi-Platform Builds (AMD64, ARM64)
+  - Automatische Tag-Verwaltung und Versionierung
+  - Docker Hub Beschreibung wird automatisch aktualisiert
 
 ### 📊 Datenmodell
 
