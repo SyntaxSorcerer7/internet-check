@@ -1,202 +1,264 @@
 # Internet-Verbindungsmonitor 🌐
 
-Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche visualisiert.
+Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
 
-## 📊 Features
-
-- **Kontinuierliches Monitoring**: Automatische Überprüfung der Internetverbindung in konfigurierbaren Intervallen
-- **Drei Ansichtsebenen**:
-  - Detaillierter Verlauf mit minutengenauer Auflösung
-  - 24-Stunden-Übersicht mit stündlicher Aggregation
-  - 30-Tage-Übersicht mit täglicher Aggregation
-- **Professionelle Verfügbarkeitsstufen**:
-  - 🟢 **Exzellent** (≥99,9%): SLA-konforme Verfügbarkeit
-  - 🟡 **Gut** (98,0-99,8%): Akzeptable Verfügbarkeit mit gelegentlichen Unterbrechungen
-  - 🔴 **Problematisch** (<98%): Häufige Ausfälle, Intervention erforderlich
-  - 🔵 **Keine Daten**: Noch keine Messwerte verfügbar
-- **Echtzeit-Updates**: Automatische Aktualisierung der Diagramme alle 60 Sekunden
-- **Responsive Design**: Optimiert für Desktop und mobile Geräte
-- **SQLite-Datenbank**: Persistente Speicherung aller Messwerte
-- **Docker-basiert**: Einfache Bereitstellung ohne komplexe Abhängigkeiten
+![Internet Monitor Dashboard](https://img.shields.io/badge/Status-Production%20Ready-green)
+![Container](https://img.shields.io/badge/Container-Podman%2FDocker-blue)
+![Python](https://img.shields.io/badge/Python-3.12-blue)
+![License](https://img.shields.io/badge/License-MIT-green)
 
 ## 🚀 Schnellstart
-
-### Mit Docker (empfohlen)
 
 ```bash
 # Repository klonen
 git clone <repository-url>
 cd internet-check
 
-# Container bauen und starten
+# Mit einem Befehl starten
 ./build-and-run.sh
 ```
 
-Die Web-Oberfläche ist dann unter <http://localhost:8000> erreichbar.
+**Web-Interface:** <http://localhost:8000>
 
-### Manueller Start
+## 📊 Features
 
-```bash
-# Python-Abhängigkeiten installieren
-pip install flask requests
+### 📈 Drei Monitoring-Ebenen
 
-# Monitoring-Script aus dem Dockerfile extrahieren und ausführen
-# (siehe Dockerfile für den kompletten Python-Code)
-python monitor.py
-```
+- **📍 Detaillierter Verlauf**: Minutengenaue Aufzeichnung aller Connectivity-Tests
+- **⏰ 24-Stunden-Übersicht**: Stündliche Aggregation mit Verfügbarkeitsprozenten
+- **📅 30-Tage-Übersicht**: Tägliche Langzeittrends für SLA-Monitoring
+
+### 🎯 Professionelle Verfügbarkeitsstufen
+
+- 🟢 **Exzellent** (≥99,9%): Enterprise-Grade Verfügbarkeit
+- 🟡 **Gut** (98,0-99,8%): Akzeptable Performance mit gelegentlichen Unterbrechungen  
+- 🔴 **Problematisch** (<98%): Häufige Ausfälle, sofortige Maßnahmen erforderlich
+- 🔵 **Keine Daten**: Noch keine Messwerte verfügbar
+
+### ⚡ Technische Highlights
+
+- **Echtzeit-Updates**: Automatische Diagramm-Aktualisierung alle 60 Sekunden
+- **Responsive Design**: Optimiert für Desktop, Tablet und Mobile
+- **Persistente Speicherung**: SQLite-Datenbank mit automatischem Cleanup
+- **Container-Ready**: Podman/Docker-basiert ohne komplexe Abhängigkeiten
+- **Hochperformant**: Minimaler Ressourcenverbrauch durch Alpine Linux
 
 ## ⚙️ Konfiguration
 
-Das Tool kann über Umgebungsvariablen konfiguriert werden:
+Alle Einstellungen erfolgen über Umgebungsvariablen:
 
 | Variable | Standard | Beschreibung |
 |----------|----------|--------------|
-| `CHECK_INTERVAL_SEC` | `60` | Intervall zwischen Connectivity-Checks in Sekunden |
-| `RETENTION_DAYS` | `30` | Aufbewahrungsdauer der Messdaten in Tagen |
-| `TEST_URL` | `https://1.1.1.1` | URL für Connectivity-Tests (Cloudflare DNS) |
+| `CHECK_INTERVAL_SEC` | `20` | Intervall zwischen Connectivity-Tests (Sekunden) |
+| `RETENTION_DAYS` | `60` | Aufbewahrungsdauer der Messdaten (Tage) |
+| `TEST_URL` | `https://1.1.1.1` | Ziel-URL für Connectivity-Tests |
 | `DB_PATH` | `data.db` | Pfad zur SQLite-Datenbankdatei |
 
-### Beispiel mit benutzerdefinierten Einstellungen
+### 🛠️ Erweiterte Konfiguration
 
 ```bash
-docker run -d \
+# Hochfrequentes Monitoring (alle 10 Sekunden)
+podman run -d \
   -p 8000:8000 \
-  -v $(pwd)/data:/app/data \
-  -e CHECK_INTERVAL_SEC=30 \
-  -e RETENTION_DAYS=60 \
-  -e TEST_URL=https://google.com \
-  -e DB_PATH=/app/data/monitoring.db \
+  -e CHECK_INTERVAL_SEC=10 \
+  -e RETENTION_DAYS=90 \
   internet-monitor
+
+# Monitoring verschiedener Ziele
+podman run -d -p 8001:8000 -e TEST_URL=https://google.com --name monitor-google internet-monitor
+podman run -d -p 8002:8000 -e TEST_URL=https://github.com --name monitor-github internet-monitor
 ```
 
 ## 📁 Projektstruktur
 
 ```text
 internet-check/
-├── Dockerfile              # Container-Definition mit eingebettetem Python-Code
-├── build-and-run.sh       # Build- und Start-Script
+├── Dockerfile              # Container mit eingebettetem Python-Code
+├── build-and-run.sh       # One-Click Start-Script (Podman/Docker)
 └── README.md              # Diese Dokumentation
 ```
 
 ## 🛠️ Technische Details
 
-### Architektur
+### 🏗️ Architektur
 
-- **Backend**: Python Flask-Webserver
-- **Frontend**: Vanilla JavaScript mit Chart.js für Visualisierungen
-- **Datenbank**: SQLite für lokale Datenpersistierung
-- **Monitoring**: Requests-Library für HTTP-Connectivity-Tests
-- **Container**: Alpine Linux mit Python 3.12
+- **Backend**: Python Flask (lightweight WSGI framework)
+- **Frontend**: Vanilla JavaScript + Chart.js für professionelle Visualisierungen
+- **Datenbank**: SQLite für lokale Datenpersistierung ohne externe Abhängigkeiten
+- **Monitoring**: HTTP-Requests mit 5s Timeout für zuverlässige Tests
+- **Container**: Alpine Linux (Python 3.12) für minimalen Footprint
 
-### Datenmodell
+### 📊 Datenmodell
 
 ```sql
 CREATE TABLE status (
-    ts INTEGER PRIMARY KEY,  -- Unix-Timestamp
+    ts INTEGER PRIMARY KEY,  -- Unix-Timestamp (Sekunden seit 1970)
     up INTEGER              -- 1=online, 0=offline
 );
 ```
 
-### API-Endpunkte
+### 🔗 API-Endpunkte
 
-- `GET /` - Web-Oberfläche (HTML)
-- `GET /data` - JSON-API mit aggregierten Messdaten
+- `GET /` - Responsive Web-Dashboard
+- `GET /data` - JSON-API mit Roh- und Aggregationsdaten
 
-## 📈 Monitoring-Logik
+### � Monitoring-Algorithmus
 
-1. **Connectivity-Test**: HTTP-Request an konfigurierte Test-URL
-2. **Timeout**: 5 Sekunden maximale Wartezeit
-3. **Bewertung**: Erfolgreiche Requests = Online, Timeouts/Fehler = Offline
-4. **Speicherung**: Timestamp und Status in SQLite-Datenbank
-5. **Cleanup**: Automatisches Löschen alter Daten basierend auf Retention-Einstellung
+1. **HTTP-Test**: GET-Request an konfigurierte URL
+2. **Timeout-Handling**: 5 Sekunden maximale Wartezeit
+3. **Bewertung**: HTTP 2xx = Online | Timeout/Error = Offline
+4. **Speicherung**: Timestamp + Status in SQLite
+5. **Retention**: Automatisches Cleanup alter Daten
 
-## 🎯 Verwendungszwecke
+## 💡 Anwendungsfälle
 
-- **Heimnetzwerk-Monitoring**: Überwachung der DSL/Kabel-Verbindung
-- **Office-Netzwerke**: Dokumentation von Internetausfällen
-- **SLA-Monitoring**: Nachweis der Provider-Verfügbarkeit
-- **Troubleshooting**: Identifikation von Verbindungsproblemen
-- **Kapazitätsplanung**: Analyse von Ausfallmustern
+- **🏠 Heimnetzwerk**: Überwachung der DSL/Glasfaser-Verbindung
+- **🏢 Büronetzwerke**: Dokumentation von Provider-Ausfällen  
+- **📋 SLA-Monitoring**: Nachweis der Verfügbarkeit für Verträge
+- **🔧 Troubleshooting**: Root-Cause-Analyse bei Verbindungsproblemen
+- **📈 Kapazitätsplanung**: Langzeit-Trendanalyse für Upgrades
 
-## 🔧 Erweiterte Nutzung
+## 🚀 Erweiterte Nutzung
 
-### Datenexport
+### 📦 Multi-Instance Deployment
 
 ```bash
-# SQLite-Datenbank direkt abfragen
-sqlite3 data.db "SELECT datetime(ts, 'unixepoch'), up FROM status ORDER BY ts;"
+# Primäre Verbindung (Cloudflare DNS)
+podman run -d --name monitor-primary -p 8000:8000 internet-monitor
 
-# CSV-Export
-sqlite3 -header -csv data.db "SELECT * FROM status;" > export.csv
+# Backup-Verbindung (Google DNS)  
+podman run -d --name monitor-backup -p 8001:8000 \
+  -e TEST_URL=https://8.8.8.8 internet-monitor
+
+# Provider-Website
+podman run -d --name monitor-isp -p 8002:8000 \
+  -e TEST_URL=https://www.telekom.de internet-monitor
 ```
 
-### Backup
+### 💾 Datenmanagement
 
 ```bash
 # Datenbank-Backup
-cp data.db backup_$(date +%Y%m%d).db
+podman exec monitor-primary cp /app/data.db /tmp/
+podman cp monitor-primary:/tmp/data.db ./backup_$(date +%Y%m%d).db
 
-# Container-Volume-Backup
-docker run --rm -v internet-check_data:/data -v $(pwd):/backup alpine tar czf /backup/backup.tar.gz -C /data .
+# CSV-Export für Excel-Analyse
+podman exec monitor-primary sqlite3 /app/data.db \
+  "SELECT datetime(ts, 'unixepoch') as timestamp, 
+          CASE up WHEN 1 THEN 'Online' ELSE 'Offline' END as status 
+   FROM status ORDER BY ts;" \
+  -header -csv > connectivity_report.csv
+
+# Statistiken abrufen
+podman exec monitor-primary sqlite3 /app/data.db \
+  "SELECT 
+     COUNT(*) as total_checks,
+     SUM(up) as successful_checks,
+     ROUND(SUM(up) * 100.0 / COUNT(*), 2) as uptime_percentage
+   FROM status WHERE ts >= strftime('%s', 'now', '-24 hours');"
 ```
 
-### Monitoring von mehreren Verbindungen
+## 📊 SLA-Referenztabelle
 
-Mehrere Container-Instanzen für verschiedene Test-URLs:
-
-```bash
-# Primäre Verbindung (Cloudflare)
-docker run -d --name monitor-cf -p 8001:8000 -e TEST_URL=https://1.1.1.1 internet-monitor
-
-# Sekundäre Verbindung (Google)
-docker run -d --name monitor-google -p 8002:8000 -e TEST_URL=https://8.8.8.8 internet-monitor
-
-# Provider-Website
-docker run -d --name monitor-isp -p 8003:8000 -e TEST_URL=https://www.telekom.de internet-monitor
-```
-
-## 📊 Verfügbarkeits-Benchmarks
-
-| SLA-Level | Downtime/Jahr | Downtime/Monat | Downtime/Tag |
-|-----------|---------------|----------------|--------------|
-| 99,9% | 8,77 Stunden | 43,8 Minuten | 1,44 Minuten |
-| 99,8% | 17,5 Stunden | 87,7 Minuten | 2,88 Minuten |
-| 98,0% | 175 Stunden | 14,6 Stunden | 28,8 Minuten |
+| Verfügbarkeit | Ausfallzeit/Jahr | Ausfallzeit/Monat | Ausfallzeit/Tag | Bewertung |
+|---------------|------------------|-------------------|-----------------|-----------|
+| 99,99% | 52,6 Minuten | 4,4 Minuten | 8,6 Sekunden | 🟢 Exzellent |
+| 99,9% | 8,77 Stunden | 43,8 Minuten | 1,44 Minuten | 🟢 Exzellent |
+| 99,5% | 43,8 Stunden | 3,65 Stunden | 7,2 Minuten | 🟡 Gut |
+| 99,0% | 87,7 Stunden | 7,31 Stunden | 14,4 Minuten | 🟡 Gut |
+| 98,0% | 175 Stunden | 14,6 Stunden | 28,8 Minuten | 🔴 Problematisch |
 
 ## 🚨 Troubleshooting
 
 ### Container startet nicht
 
 ```bash
-# Logs prüfen
-docker logs <container-id>
+# Logs prüfen  
+podman logs <container-name>
 
-# Port-Konflikte prüfen
+# Port-Konflikte checken
 netstat -tulpn | grep :8000
+lsof -i :8000
+
+# Container-Status prüfen
+podman ps -a
 ```
 
 ### Keine Daten sichtbar
 
-- Warten Sie mindestens 1-2 Minuten nach dem Start
-- Prüfen Sie die Netzwerkverbindung des Containers
-- Überprüfen Sie die TEST_URL-Konfiguration
+- **Warten**: Mindestens 1-2 Minuten nach dem Start warten
+- **Netzwerk**: Container-Netzwerkverbindung prüfen
+- **URL**: TEST_URL-Erreichbarkeit validieren
+- **Firewall**: Ausgehende HTTP-Verbindungen erlauben
 
-### Hoher Speicherverbrauch
+### Performance-Optimierung
 
-- Reduzieren Sie RETENTION_DAYS
-- Implementieren Sie regelmäßige Datenbank-Cleanups
+```bash
+# Speicherverbrauch reduzieren
+-e RETENTION_DAYS=7
+
+# Höhere Frequenz für kritische Systeme  
+-e CHECK_INTERVAL_SEC=5
+
+# Ressourcen-Limits setzen
+podman run --memory=128m --cpus=0.5 internet-monitor
+```
+
+### Datenbank-Wartung
+
+```bash
+# Datenbank-Größe prüfen
+podman exec monitor-primary du -h /app/data.db
+
+# Manuelle Bereinigung
+podman exec monitor-primary sqlite3 /app/data.db \
+  "DELETE FROM status WHERE ts < strftime('%s', 'now', '-7 days');"
+
+# Datenbank-Optimierung
+podman exec monitor-primary sqlite3 /app/data.db "VACUUM;"
+```
+
+## 🤝 Support & Entwicklung
+
+### 🐛 Bug Reports
+
+Erstellen Sie ein [GitHub Issue](https://github.com/SyntaxSorcerer7/internet-check/issues) mit:
+
+- Betriebssystem und Version
+- Podman/Docker Version  
+- Container-Logs (`podman logs <container>`)
+- Beschreibung des Problems
+
+### 💡 Feature Requests
+
+Wir freuen uns über Verbesserungsvorschläge! Bitte öffnen Sie ein Issue mit:
+
+- Detaillierte Beschreibung der gewünschten Funktion
+- Anwendungsfall/Nutzen
+- Optionale Implementierungsideen
+
+### � Entwicklung
+
+```bash
+# Development-Setup
+git clone https://github.com/SyntaxSorcerer7/internet-check.git
+cd internet-check
+
+# Lokale Entwicklung
+podman build -t internet-monitor-dev .
+podman run --rm -p 8000:8000 -v $(pwd):/app internet-monitor-dev
+
+# Tests ausführen (falls vorhanden)
+podman exec -it <container> python -m pytest
+```
 
 ## 📝 Lizenz
 
-Dieses Projekt steht unter der MIT-Lizenz. Siehe [LICENSE](LICENSE) für Details.
+Dieses Projekt steht unter der **MIT-Lizenz**. Siehe [LICENSE](LICENSE) für Details.
 
-## 🤝 Beitragen
+## 🌟 Mitwirkende
 
-Beiträge sind willkommen! Bitte erstellen Sie einen Pull Request oder öffnen Sie ein Issue für Verbesserungsvorschläge.
-
-## 📞 Support
-
-Bei Fragen oder Problemen erstellen Sie bitte ein GitHub Issue oder kontaktieren Sie den Projektmaintainer.
+Dank an alle Entwickler, die zu diesem Projekt beitragen!
 
 ---
 

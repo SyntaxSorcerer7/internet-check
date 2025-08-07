@@ -3,6 +3,12 @@ FROM python:3.12-alpine
 
 WORKDIR /app
 
+# Zeitzone auf UTC setzen für konsistente Zeitstempel
+ENV TZ=UTC
+RUN apk add --no-cache tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+
 # Flask & Requests schlank installieren
 RUN pip install --no-cache-dir flask requests
 
@@ -16,6 +22,10 @@ INTERVAL  = int(os.getenv("CHECK_INTERVAL_SEC", 20))            # Sek. zw. Check
 RETENTION = int(os.getenv("RETENTION_DAYS",    60))             # Tage Aufbewahrung
 TEST_URL  = os.getenv("TEST_URL", "https://1.1.1.1")            # Prüfdienst
 DB_PATH   = os.getenv("DB_PATH", "data.db")
+
+def get_utc_timestamp():
+    """UTC-Timestamp zurückgeben (immer UTC, unabhängig von Container-Zeitzone)"""
+    return int(dt.datetime.now(dt.timezone.utc).timestamp())
 
 # ────────── Ein-Seiten-Frontend (Chart.js + date-fns Adapter) ─────────
 HTML_PAGE = """<!doctype html><html lang=de>
@@ -61,6 +71,23 @@ HTML_PAGE = """<!doctype html><html lang=de>
 <script>
 let chart=null, hourlyChart=null, dailyChart=null;
 
+// Hilfsfunktion: UTC-Timestamp zu lokaler Zeit konvertieren
+function utcToLocal(utcTimestamp) {
+  return new Date(utcTimestamp * 1000);
+}
+
+// Hilfsfunktion: UTC-Timestamp zu lokalem Stunden-Label
+function formatHourLabel(utcTimestamp) {
+  const localDate = utcToLocal(utcTimestamp);
+  return localDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+// Hilfsfunktion: UTC-Timestamp zu lokalem Tages-Label  
+function formatDayLabel(utcTimestamp) {
+  const localDate = utcToLocal(utcTimestamp);
+  return localDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+}
+
 async function reloadData(){
   const r = await fetch('/data');
   const {labels,values,hourly,daily} = await r.json();
@@ -71,11 +98,13 @@ async function reloadData(){
         : 'Noch keine Daten';
   document.getElementById('status').textContent = statusTxt;
 
-  // Detaillierter Verlauf
+  // Detaillierter Verlauf - UTC-Timestamps zu lokalen Zeiten konvertieren
+  const localLabels = labels.map(utcTimestamp => utcToLocal(utcTimestamp).toISOString());
+  
   if(!chart){
     chart = new Chart(document.getElementById('c'),{
       type:'line',
-      data:{labels,
+      data:{labels:localLabels,
             datasets:[{label:'Online-Status',data:values,stepped:true,fill:true}]},
       options:{scales:{
         y:{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'Online':'Offline'}},
@@ -83,18 +112,18 @@ async function reloadData(){
       }}
     });
   }else{
-    chart.data.labels = labels;
+    chart.data.labels = localLabels;
     chart.data.datasets[0].data = values;
     chart.update();
   }
   
-  // 24-Stunden-Chart
+  // 24-Stunden-Chart - UTC zu lokaler Zeit konvertieren
   if(hourly && hourly.length){
     if(!hourlyChart){
       hourlyChart = new Chart(document.getElementById('hourlyChart'),{
         type:'bar',
         data:{
-          labels:hourly.map(h=>h.uptime<0?h.hour+' ?':h.hour),
+          labels:hourly.map(h=>h.uptime<0 ? formatHourLabel(h.hour)+' ?' : formatHourLabel(h.hour)),
           datasets:[{
             label:'Stündlicher Status',
             data:hourly.map(h=>h.uptime<0?0.5:h.uptime),
@@ -106,7 +135,7 @@ async function reloadData(){
           responsive:true,
           scales:{
             y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
-            x:{title:{display:true,text:'Stunde'}}
+            x:{title:{display:true,text:'Stunde (Ortszeit)'}}
           },
           plugins:{
             tooltip:{
@@ -121,20 +150,20 @@ async function reloadData(){
         }
       });
     }else{
-      hourlyChart.data.labels = hourly.map(h=>h.uptime<0?h.hour+' ?':h.hour);
+      hourlyChart.data.labels = hourly.map(h=>h.uptime<0 ? formatHourLabel(h.hour)+' ?' : formatHourLabel(h.hour));
       hourlyChart.data.datasets[0].data = hourly.map(h=>h.uptime<0?0.5:h.uptime);
       hourlyChart.data.datasets[0].backgroundColor = hourly.map(h=>h.uptime<0?'#3b82f6':(h.uptime>=0.999?'#4ade80':(h.uptime>=0.98?'#eab308':'#ef4444')));
       hourlyChart.update();
     }
   }
   
-  // Tages-Chart
+  // Tages-Chart - UTC zu lokaler Zeit konvertieren
   if(daily && daily.length){
     if(!dailyChart){
       dailyChart = new Chart(document.getElementById('dailyChart'),{
         type:'bar',
         data:{
-          labels:daily.map(d=>d.uptime<0?d.date+' ?':d.date),
+          labels:daily.map(d=>d.uptime<0 ? formatDayLabel(d.date)+' ?' : formatDayLabel(d.date)),
           datasets:[{
             label:'Täglicher Status',
             data:daily.map(d=>d.uptime<0?0.5:d.uptime),
@@ -146,7 +175,7 @@ async function reloadData(){
           responsive:true,
           scales:{
             y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
-            x:{title:{display:true,text:'Tag'}}
+            x:{title:{display:true,text:'Tag (Ortszeit)'}}
           },
           plugins:{
             tooltip:{
@@ -161,7 +190,7 @@ async function reloadData(){
         }
       });
     }else{
-      dailyChart.data.labels = daily.map(d=>d.uptime<0?d.date+' ?':d.date);
+      dailyChart.data.labels = daily.map(d=>d.uptime<0 ? formatDayLabel(d.date)+' ?' : formatDayLabel(d.date));
       dailyChart.data.datasets[0].data = daily.map(d=>d.uptime<0?0.5:d.uptime);
       dailyChart.data.datasets[0].backgroundColor = daily.map(d=>d.uptime<0?'#3b82f6':(d.uptime>=0.999?'#4ade80':(d.uptime>=0.98?'#eab308':'#ef4444')));
       dailyChart.update();
@@ -186,25 +215,22 @@ def write_sample():
     up = 1
     try: 
         requests.get(TEST_URL, timeout=5)
-        print(f"DEBUG: Connection test to {TEST_URL} successful")
-    except requests.RequestException as e: 
+    except requests.RequestException: 
         up = 0
-        print(f"DEBUG: Connection test to {TEST_URL} failed: {e}")
     
-    now = int(time.time())
+    now = get_utc_timestamp()  # UTC-Timestamp verwenden
     with sqlite3.connect(DB_PATH) as c:
-        c.execute("INSERT INTO status VALUES(?,?)", (now, up))
+        # INSERT OR REPLACE verwenden um Duplikate zu vermeiden
+        c.execute("INSERT OR REPLACE INTO status VALUES(?,?)", (now, up))
         # Alte Daten löschen - aber nur sehr alte (älter als RETENTION)
         cutoff = now - RETENTION*86400
         deleted = c.execute("DELETE FROM status WHERE ts < ?", (cutoff,)).rowcount
         total_count = c.execute("SELECT COUNT(*) FROM status").fetchone()[0]
-        print(f"DEBUG: Inserted sample (ts={now}, up={up}), deleted {deleted} old records, total records: {total_count}")
+        print(f"DEBUG: Inserted/updated ts={now}, up={up}, deleted {deleted} old records, total: {total_count}")
 
 def monitor_loop():
     """Endlos-Loop, der alle INTERVAL Sekunden misst."""
-    print(f"DEBUG: Monitor loop started, checking every {INTERVAL} seconds")
     while True:
-        print(f"DEBUG: Running connectivity check at {dt.datetime.now()}")
         write_sample()
         time.sleep(INTERVAL)
 
@@ -214,23 +240,31 @@ def index():
 
 @app.route("/data")
 def data():
-    since = int(time.time()) - RETENTION*86400
+    # Alle Daten holen (ohne since Filter) um das Problem zu debuggen
     with sqlite3.connect(DB_PATH) as c:
-        # Alle Daten ab dem Retention-Zeitpunkt abrufen
-        rows = c.execute("SELECT ts,up FROM status WHERE ts>=? ORDER BY ts",(since,)).fetchall()
-        # Debug: Gesamtanzahl der Datensätze in der DB
+        rows = c.execute("SELECT ts,up FROM status ORDER BY ts").fetchall()
         total_count = c.execute("SELECT COUNT(*) FROM status").fetchone()[0]
     
-    print(f"DEBUG: Total records in DB: {total_count}, Records since {since}: {len(rows)}")
+    print(f"DEBUG: Total records: {total_count}, All records: {len(rows)}")
+    if rows:
+        print(f"DEBUG: First timestamp: {rows[0][0]}, Last timestamp: {rows[-1][0]}")
+        print(f"DEBUG: Current UTC time: {get_utc_timestamp()}")
+        
+        # Nur die letzten RETENTION Tage für die Anzeige verwenden
+        current_time = get_utc_timestamp()
+        retention_cutoff = current_time - RETENTION*86400
+        recent_rows = [row for row in rows if row[0] >= retention_cutoff]
+        print(f"DEBUG: Recent records (last {RETENTION} days): {len(recent_rows)}")
+        rows = recent_rows
     
-    # Basis-Daten für detaillierten Verlauf
+    # Basis-Daten für detaillierten Verlauf - UTC-Timestamps senden
     result = {
-        "labels":[dt.datetime.fromtimestamp(t).isoformat() for t,_ in rows],
+        "labels":[t for t,_ in rows],  # Raw UTC timestamps senden
         "values":[u for _,u in rows]
     }
     
     # 24-Stunden-Aggregation (letzte 24h)
-    now = int(time.time())
+    now = get_utc_timestamp()
     hourly_data = []
     for h in range(24):
         hour_start = now - (h * 3600)
@@ -242,8 +276,8 @@ def data():
         else:
             uptime = -1  # Keine Daten verfügbar
             
-        hour_label = dt.datetime.fromtimestamp(hour_start).strftime("%H:00")
-        hourly_data.insert(0, {"hour": hour_label, "uptime": uptime})
+        # UTC-Timestamp für Stunde senden
+        hourly_data.insert(0, {"hour": hour_start, "uptime": uptime})
     
     # Tages-Aggregation (letzte 30 Tage)
     daily_data = []
@@ -257,8 +291,8 @@ def data():
         else:
             uptime = -1  # Keine Daten verfügbar
             
-        day_label = dt.datetime.fromtimestamp(day_start).strftime("%d.%m")
-        daily_data.insert(0, {"date": day_label, "uptime": uptime})
+        # UTC-Timestamp für Tag senden
+        daily_data.insert(0, {"date": day_start, "uptime": uptime})
     
     result["hourly"] = hourly_data
     result["daily"] = daily_data
