@@ -2,6 +2,43 @@
 
 Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
 
+![Internet Mo### 🎯 Entwicklung & Anpassungen
+
+Die neue modulare Struktur ermöglicht einfache Anpassungen:
+
+```bash
+# Frontend anpassen (HTML/CSS/JavaScript)
+nano templates/index.html
+
+# Backend-Logic erweitern  
+nano monitor.py
+
+# Container neu bauen nach Änderungen
+./build-and-run.sh
+```
+
+**Vorteile der neuen Struktur:**
+
+- ✅ Bessere Code-Organisation und Lesbarkeit
+- ✅ Separate Bearbeitung von Frontend und Backend
+- ✅ Einfachere Versionskontrolle und Debugging
+- ✅ Wiederverwendbare Komponenten
+- ✅ Standard Flask-Projekt-Layout
+
+### 💻 Lokale Entwicklung
+
+```bash
+# Development-Setup
+git clone https://github.com/SyntaxSorcerer7/internet-check.git
+cd internet-check
+
+# Direkt mit Python ausführen (für Development)
+python monitor.py
+
+# Oder im Container mit Volume-Mounting für Live-Reload
+podman run --rm -p 8000:8000 -v $(pwd):/app internet-monitor
+```
+
 ![Internet Monitor Dashboard](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![Container](https://img.shields.io/badge/Container-Podman%2FDocker-blue)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
@@ -73,8 +110,13 @@ podman run -d -p 8002:8000 -e TEST_URL=https://github.com --name monitor-github 
 
 ```text
 internet-check/
-├── Dockerfile              # Container mit eingebettetem Python-Code
+├── monitor.py              # Python-Backend (Flask-Server + Monitoring-Logic)
+├── templates/
+│   └── index.html         # HTML-Frontend mit Chart.js Visualisierungen
+├── Dockerfile              # Container-Definition (Alpine Linux + Python)
 ├── build-and-run.sh       # One-Click Start-Script (Podman/Docker)
+├── auto-update.sh         # Automatisches Update-Script
+├── data.db                # SQLite-Datenbank (wird beim ersten Start erstellt)
 └── README.md              # Diese Dokumentation
 ```
 
@@ -82,11 +124,24 @@ internet-check/
 
 ### 🏗️ Architektur
 
-- **Backend**: Python Flask (lightweight WSGI framework)
-- **Frontend**: Vanilla JavaScript + Chart.js für professionelle Visualisierungen
-- **Datenbank**: SQLite für lokale Datenpersistierung ohne externe Abhängigkeiten
-- **Monitoring**: HTTP-Requests mit 5s Timeout für zuverlässige Tests
-- **Container**: Alpine Linux (Python 3.12) für minimalen Footprint
+Das Projekt ist jetzt modular strukturiert:
+
+- **Backend** (`monitor.py`): Python Flask-Server mit SQLite-Integration
+  - HTTP-Monitoring mit konfigurierbaren Intervallen
+  - REST-API für Datenabfrage (`/data` Endpoint)
+  - Automatische Datenbereinigung nach konfigurierbarer Retention
+  - Multithreading für non-blocking Monitoring
+
+- **Frontend** (`templates/index.html`): Responsive Web-Interface
+  - Chart.js für professionelle Datenvisualisierung
+  - Echtzeit-Updates via AJAX alle 60 Sekunden
+  - Mobile-optimiertes Design
+  - Timezone-aware Darstellung (UTC → Ortszeit)
+
+- **Container** (`Dockerfile`): Schlanke Alpine Linux-Basis
+  - Python 3.12 mit minimalen Dependencies (Flask, Requests)
+  - UTC-Zeitzone für konsistente Timestamps
+  - Automatisches Kopieren der Quellcode-Dateien
 
 ### 📊 Datenmodell
 
