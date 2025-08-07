@@ -72,8 +72,6 @@ async function reloadData(){
   document.getElementById('status').textContent = statusTxt;
 
   // Detaillierter Verlauf
-  if(!values.length){ if(chart){chart.destroy();chart=null;} return; }
-
   if(!chart){
     chart = new Chart(document.getElementById('c'),{
       type:'line',
@@ -186,16 +184,27 @@ def init_db():
 def write_sample():
     """Einen Connectivity-Datensatz schreiben und alte Daten trimmen."""
     up = 1
-    try: requests.get(TEST_URL, timeout=5)
-    except requests.RequestException: up = 0
+    try: 
+        requests.get(TEST_URL, timeout=5)
+        print(f"DEBUG: Connection test to {TEST_URL} successful")
+    except requests.RequestException as e: 
+        up = 0
+        print(f"DEBUG: Connection test to {TEST_URL} failed: {e}")
+    
     now = int(time.time())
     with sqlite3.connect(DB_PATH) as c:
         c.execute("INSERT INTO status VALUES(?,?)", (now, up))
-        c.execute("DELETE FROM status WHERE ts < ?", (now - RETENTION*86400,))  # ← tuple!
+        # Alte Daten löschen - aber nur sehr alte (älter als RETENTION)
+        cutoff = now - RETENTION*86400
+        deleted = c.execute("DELETE FROM status WHERE ts < ?", (cutoff,)).rowcount
+        total_count = c.execute("SELECT COUNT(*) FROM status").fetchone()[0]
+        print(f"DEBUG: Inserted sample (ts={now}, up={up}), deleted {deleted} old records, total records: {total_count}")
 
 def monitor_loop():
     """Endlos-Loop, der alle INTERVAL Sekunden misst."""
+    print(f"DEBUG: Monitor loop started, checking every {INTERVAL} seconds")
     while True:
+        print(f"DEBUG: Running connectivity check at {dt.datetime.now()}")
         write_sample()
         time.sleep(INTERVAL)
 
@@ -207,7 +216,12 @@ def index():
 def data():
     since = int(time.time()) - RETENTION*86400
     with sqlite3.connect(DB_PATH) as c:
+        # Alle Daten ab dem Retention-Zeitpunkt abrufen
         rows = c.execute("SELECT ts,up FROM status WHERE ts>=? ORDER BY ts",(since,)).fetchall()
+        # Debug: Gesamtanzahl der Datensätze in der DB
+        total_count = c.execute("SELECT COUNT(*) FROM status").fetchone()[0]
+    
+    print(f"DEBUG: Total records in DB: {total_count}, Records since {since}: {len(rows)}")
     
     # Basis-Daten für detaillierten Verlauf
     result = {
