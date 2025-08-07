@@ -1,5 +1,10 @@
 <!doctype html><html lang=de>
 <head><meta charset=utf-8><title>Internet-Verbindungsmonitor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Überwacht die Internetverbindung und zeigt Statistiken an">
+<meta name="theme-color" content="#4ade80">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHA+YXRoIGQ9Ik0xMiAyQzYuNDggMiAyIDYuNDggMiAxMnM0LjQ4IDEwIDEwIDEwIDEwLTQuNDggMTAtMTBTMTcuNTIgMiAxMiAyeiIgZmlsbD0iIzRhZGU4MCIvPgo8cGF0aCBmaWxsPSJ3aGl0ZSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBkPSJtNyAxMiAzIDMgNy03Ii8+Cjwvc3ZnPg==">
 <script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
 <script src='https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3'></script>
 <style>
@@ -174,4 +179,102 @@ async function reloadData(){
 
 reloadData();
 setInterval(reloadData, 60000);   // jede Minute
+
+// Service Worker registrieren für PWA-Funktionalität
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(registration => {
+        console.log('✅ SW registriert mit Scope: ', registration.scope);
+        // Update prüfen
+        registration.addEventListener('updatefound', () => {
+          console.log('🔄 SW Update gefunden');
+        });
+      })
+      .catch(error => {
+        console.error('❌ SW Registrierung fehlgeschlagen: ', error);
+      });
+  });
+} else {
+  console.warn('⚠️ Service Worker wird nicht unterstützt');
+}
+
+// Debug: PWA-Installation prüfen
+window.addEventListener('appinstalled', (evt) => {
+  console.log('✅ PWA wurde installiert');
+});
+
+// Install Prompt für PWA
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => {
+  console.log('📱 PWA Install Prompt verfügbar');
+  // Prevent Chrome 67 and earlier from automatically showing the prompt
+  e.preventDefault();
+  // Stash the event so it can be triggered later.
+  deferredPrompt = e;
+  // Show install button
+  showInstallButton();
+});
+
+function showInstallButton() {
+  // Prüfen ob bereits ein Button existiert
+  if (document.getElementById('installBtn')) return;
+  
+  const installButton = document.createElement('button');
+  installButton.id = 'installBtn';
+  installButton.innerHTML = '📱 App installieren';
+  installButton.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4ade80;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    transition: opacity 0.3s;
+  `;
+  
+  installButton.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      console.log(`User response to the install prompt: ${outcome}`);
+      deferredPrompt = null;
+      installButton.remove();
+    }
+  });
+  
+  document.body.appendChild(installButton);
+  
+  // Hide button after 15 seconds
+  setTimeout(() => {
+    if (installButton.parentNode) {
+      installButton.style.opacity = '0';
+      setTimeout(() => installButton.remove(), 300);
+    }
+  }, 15000);
+}
+
+// Debug-Informationen ausgeben
+console.log('🔍 PWA Debug Info:');
+console.log('- URL:', window.location.href);
+console.log('- Protocol:', window.location.protocol);
+console.log('- Host:', window.location.host);
+console.log('- Service Worker Support:', 'serviceWorker' in navigator);
+console.log('- Manifest Support:', 'manifest' in document.createElement('link'));
+
+// Manifest-Informationen laden und prüfen
+fetch('/manifest.json')
+  .then(response => response.json())
+  .then(manifest => {
+    console.log('✅ Manifest geladen:', manifest);
+  })
+  .catch(error => {
+    console.error('❌ Manifest-Fehler:', error);
+  });
 </script></body></html>

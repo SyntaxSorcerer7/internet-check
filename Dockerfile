@@ -14,6 +14,7 @@ RUN pip install --no-cache-dir flask requests
 # Dateien kopieren
 COPY monitor.py .
 COPY templates/ templates/
+COPY static/ static/
 
 # ─────────────────────────  Laufzeit  ────────────────────────────────
 EXPOSE 8000

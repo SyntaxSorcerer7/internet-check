@@ -1,5 +1,5 @@
 import os, time, threading, sqlite3, datetime as dt, requests
-from flask import Flask, jsonify, Response, render_template
+from flask import Flask, jsonify, Response, render_template, send_from_directory
 
 # ────────── Konfiguration via ENV ──────────
 INTERVAL  = int(os.getenv("CHECK_INTERVAL_SEC", 20))            # Sek. zw. Checks
@@ -12,7 +12,7 @@ def get_utc_timestamp():
     return int(dt.datetime.now(dt.timezone.utc).timestamp())
 
 # ────────── Backend ──────────
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', static_url_path='/static')
 
 def init_db():
     """Tabelle anlegen, falls sie noch nicht existiert."""
@@ -46,6 +46,20 @@ def monitor_loop():
 @app.route("/")
 def index():
     return render_template('index.html')
+
+@app.route("/manifest.json")
+def manifest():
+    """Serve the PWA manifest with correct MIME type"""
+    return send_from_directory('static', 'manifest.json', mimetype='application/json')
+
+@app.route("/sw.js")
+def service_worker():
+    """Serve the service worker with correct MIME type"""
+    response = send_from_directory('static', 'sw.js', mimetype='application/javascript')
+    # Wichtig: Service Worker braucht spezielle Headers
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
 
 @app.route("/data")
 def data():
