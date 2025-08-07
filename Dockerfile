@@ -269,9 +269,12 @@ def data():
     
     # 24-Stunden-Aggregation (letzte 24h)
     now = get_utc_timestamp()
+    current_hour_start = (now // 3600) * 3600  # Aktuelle Stunde, auf den Stundenanfang gerundet
     hourly_data = []
+    
     for h in range(24):
-        hour_start = now - (h * 3600)
+        # Von der aktuellen Stunde 23 Stunden zurückgehen
+        hour_start = current_hour_start - (h * 3600)
         hour_end = hour_start + 3600
         hour_rows = [up for ts, up in rows if hour_start <= ts < hour_end]
         
