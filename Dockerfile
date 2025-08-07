@@ -76,10 +76,14 @@ function utcToLocal(utcTimestamp) {
   return new Date(utcTimestamp * 1000);
 }
 
-// Hilfsfunktion: UTC-Timestamp zu lokalem Stunden-Label
-function formatHourLabel(utcTimestamp) {
-  const localDate = utcToLocal(utcTimestamp);
-  return localDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+// Hilfsfunktion: UTC-Stunde zu lokaler Stunde umrechnen und formatieren
+function formatHourLabel(utcHour) {
+  // UTC-Stunde in lokale Stunde umrechnen
+  const now = new Date();
+  const utcTime = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+  utcTime.setUTCHours(utcHour, 0, 0, 0);
+  const localHour = utcTime.getHours();
+  return localHour.toString().padStart(2, '0') + ':00';
 }
 
 // Hilfsfunktion: UTC-Timestamp zu lokalem Tages-Label  
@@ -276,8 +280,9 @@ def data():
         else:
             uptime = -1  # Keine Daten verfügbar
             
-        # UTC-Timestamp für Stunde senden
-        hourly_data.insert(0, {"hour": hour_start, "uptime": uptime})
+        # Nur die Stunde des Tages (0-23) senden
+        hour_of_day = dt.datetime.fromtimestamp(hour_start, dt.timezone.utc).hour
+        hourly_data.insert(0, {"hour": hour_of_day, "uptime": uptime})
     
     # Tages-Aggregation (letzte 30 Tage)
     daily_data = []
