@@ -1,58 +1,58 @@
-# Internet-Verbindungsmonitor 🌐
+# Internet Connection Monitor 🌐
 
 ![Docker Pulls](https://img.shields.io/docker/pulls/syntaxsorcerer7/internet-monitor)
 ![Docker Image Size](https://img.shields.io/docker/image-size/syntaxsorcerer7/internet-monitor)
 ![Docker Stars](https://img.shields.io/docker/stars/syntaxsorcerer7/internet-monitor)
 
-Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
+A containerized internet monitoring tool that continuously tracks your internet connection availability and visualizes it in a clear web interface with professional charts.
 
-## 🚀 Schnellstart
+## 🚀 Quick Start
 
 ```bash
-# Container starten
+# Start container
 docker run -d \
   --name internet-monitor \
   -p 8000:8000 \
   syntaxsorcerer7/internet-monitor
 
-# Web-Interface öffnen
+# Open web interface
 open http://localhost:8000
 ```
 
 ## 📊 Features
 
-### 📈 Drei Monitoring-Ebenen
-- **📍 Detaillierter Verlauf**: Minutengenaue Aufzeichnung aller Connectivity-Tests
-- **⏰ 24-Stunden-Übersicht**: Stündliche Aggregation mit Verfügbarkeitsprozenten  
-- **📅 30-Tage-Übersicht**: Tägliche Langzeittrends für SLA-Monitoring
+### 📈 Three Monitoring Levels
+- **📍 Detailed History**: Minute-by-minute recording of all connectivity tests
+- **⏰ 24-Hour Overview**: Hourly aggregation with availability percentages  
+- **📅 30-Day Overview**: Daily long-term trends for SLA monitoring
 
-### 🎯 Professionelle Verfügbarkeitsstufen
-- 🟢 **Exzellent** (≥99,9%): Enterprise-Grade Verfügbarkeit
-- 🟡 **Gut** (98,0-99,8%): Akzeptable Performance mit gelegentlichen Unterbrechungen
-- 🔴 **Problematisch** (<98%): Häufige Ausfälle, sofortige Maßnahmen erforderlich
-- 🔵 **Keine Daten**: Noch keine Messwerte verfügbar
+### 🎯 Professional Availability Levels
+- 🟢 **Excellent** (≥99.9%): Enterprise-grade availability
+- 🟡 **Good** (98.0-99.8%): Acceptable performance with occasional interruptions
+- 🔴 **Problematic** (<98%): Frequent outages, immediate action required
+- 🔵 **No Data**: No measurements available yet
 
-### ⚡ Technische Highlights
-- **Echtzeit-Updates**: Automatische Diagramm-Aktualisierung alle 60 Sekunden
-- **Responsive Design**: Optimiert für Desktop, Tablet und Mobile
-- **Persistente Speicherung**: SQLite-Datenbank mit automatischem Cleanup
-- **Multi-Platform**: Unterstützt AMD64 und ARM64 (Raspberry Pi, Apple Silicon)
-- **Hochperformant**: Minimaler Ressourcenverbrauch durch Alpine Linux
+### ⚡ Technical Highlights
+- **Real-time Updates**: Automatic chart refresh every 60 seconds
+- **Responsive Design**: Optimized for desktop, tablet, and mobile
+- **Persistent Storage**: SQLite database with automatic cleanup
+- **Multi-Platform**: Supports AMD64 and ARM64 (Raspberry Pi, Apple Silicon)
+- **High Performance**: Minimal resource usage through Alpine Linux
 
-## ⚙️ Konfiguration
+## ⚙️ Configuration
 
-Alle Einstellungen erfolgen über Umgebungsvariablen:
+All settings are configured via environment variables:
 
-| Variable | Standard | Beschreibung |
+| Variable | Default | Description |
 |----------|----------|--------------|
-| `CHECK_INTERVAL_SEC` | `20` | Intervall zwischen Connectivity-Tests (Sekunden) |
-| `RETENTION_DAYS` | `60` | Aufbewahrungsdauer der Messdaten (Tage) |
-| `TEST_URL` | `https://1.1.1.1` | Ziel-URL für Connectivity-Tests |
-| `DB_PATH` | `data.db` | Pfad zur SQLite-Datenbankdatei |
+| `CHECK_INTERVAL_SEC` | `20` | Interval between connectivity tests (seconds) |
+| `RETENTION_DAYS` | `60` | Data retention period (days) |
+| `TEST_URL` | `https://1.1.1.1` | Target URL for connectivity tests |
+| `DB_PATH` | `data.db` | Path to SQLite database file |
 
-## 🛠️ Verwendung
+## 🛠️ Usage
 
-### Standard-Konfiguration
+### Standard Configuration
 ```bash
 docker run -d \
   --name internet-monitor \
@@ -60,9 +60,9 @@ docker run -d \
   syntaxsorcerer7/internet-monitor
 ```
 
-### Erweiterte Konfiguration
+### Advanced Configuration
 ```bash
-# Hochfrequentes Monitoring (alle 10 Sekunden)
+# High-frequency monitoring (every 10 seconds)
 docker run -d \
   --name internet-monitor \
   -p 8000:8000 \
@@ -70,7 +70,7 @@ docker run -d \
   -e RETENTION_DAYS=90 \
   syntaxsorcerer7/internet-monitor
 
-# Monitoring verschiedener Ziele
+# Monitoring different targets
 docker run -d --name monitor-google -p 8001:8000 \
   -e TEST_URL=https://google.com \
   syntaxsorcerer7/internet-monitor
@@ -80,9 +80,9 @@ docker run -d --name monitor-github -p 8002:8000 \
   syntaxsorcerer7/internet-monitor
 ```
 
-### Persistente Daten
+### Persistent Data
 ```bash
-# Datenbank außerhalb des Containers speichern
+# Store database outside container
 docker run -d \
   --name internet-monitor \
   -p 8000:8000 \
@@ -108,61 +108,61 @@ services:
     restart: unless-stopped
 ```
 
-## 📊 SLA-Referenztabelle
+## 📊 SLA Reference Table
 
-| Verfügbarkeit | Ausfallzeit/Jahr | Ausfallzeit/Monat | Ausfallzeit/Tag | Bewertung |
+| Availability | Downtime/Year | Downtime/Month | Downtime/Day | Rating |
 |---------------|------------------|-------------------|-----------------|-----------|
-| 99,99% | 52,6 Minuten | 4,4 Minuten | 8,6 Sekunden | 🟢 Exzellent |
-| 99,9% | 8,77 Stunden | 43,8 Minuten | 1,44 Minuten | 🟢 Exzellent |
-| 99,5% | 43,8 Stunden | 3,65 Stunden | 7,2 Minuten | 🟡 Gut |
-| 99,0% | 87,7 Stunden | 7,31 Stunden | 14,4 Minuten | 🟡 Gut |
-| 98,0% | 175 Stunden | 14,6 Stunden | 28,8 Minuten | 🔴 Problematisch |
+| 99.99% | 52.6 minutes | 4.4 minutes | 8.6 seconds | 🟢 Excellent |
+| 99.9% | 8.77 hours | 43.8 minutes | 1.44 minutes | 🟢 Excellent |
+| 99.5% | 43.8 hours | 3.65 hours | 7.2 minutes | 🟡 Good |
+| 99.0% | 87.7 hours | 7.31 hours | 14.4 minutes | 🟡 Good |
+| 98.0% | 175 hours | 14.6 hours | 28.8 minutes | 🔴 Problematic |
 
-## 💡 Anwendungsfälle
+## 💡 Use Cases
 
-- **🏠 Heimnetzwerk**: Überwachung der DSL/Glasfaser-Verbindung
-- **🏢 Büronetzwerke**: Dokumentation von Provider-Ausfällen
-- **📋 SLA-Monitoring**: Nachweis der Verfügbarkeit für Verträge
-- **🔧 Troubleshooting**: Root-Cause-Analyse bei Verbindungsproblemen
-- **📈 Kapazitätsplanung**: Langzeit-Trendanalyse für Upgrades
+- **🏠 Home Networks**: Monitor DSL/fiber connections
+- **🏢 Office Networks**: Document provider outages
+- **📋 SLA Monitoring**: Prove availability for contracts
+- **🔧 Troubleshooting**: Root cause analysis for connection issues
+- **📈 Capacity Planning**: Long-term trend analysis for upgrades
 
 ## 🚨 Troubleshooting
 
-### Container startet nicht
+### Container won't start
 ```bash
-# Logs prüfen
+# Check logs
 docker logs internet-monitor
 
-# Port-Konflikte checken
+# Check port conflicts
 netstat -tulpn | grep :8000
 lsof -i :8000
 ```
 
-### Keine Daten sichtbar
-- **Warten**: Mindestens 1-2 Minuten nach dem Start warten
-- **Netzwerk**: Container-Netzwerkverbindung prüfen
-- **URL**: TEST_URL-Erreichbarkeit validieren
-- **Firewall**: Ausgehende HTTP-Verbindungen erlauben
+### No data visible
+- **Wait**: Allow at least 1-2 minutes after startup
+- **Network**: Check container network connection
+- **URL**: Validate TEST_URL reachability
+- **Firewall**: Allow outgoing HTTP connections
 
-### Performance-Optimierung
+### Performance Optimization
 ```bash
-# Speicherverbrauch reduzieren
+# Reduce memory usage
 docker run -d -e RETENTION_DAYS=7 syntaxsorcerer7/internet-monitor
 
-# Höhere Frequenz für kritische Systeme
+# Higher frequency for critical systems
 docker run -d -e CHECK_INTERVAL_SEC=5 syntaxsorcerer7/internet-monitor
 
-# Ressourcen-Limits setzen
+# Set resource limits
 docker run -d --memory=128m --cpus=0.5 syntaxsorcerer7/internet-monitor
 ```
 
-## 🏗️ Architektur
+## 🏗️ Architecture
 
-- **Backend**: Python Flask mit SQLite-Datenbank
-- **Frontend**: Responsive HTML mit Chart.js-Visualisierungen
-- **Container**: Alpine Linux (Python 3.12) für minimalen Footprint
-- **Monitoring**: HTTP-Requests mit 5s Timeout für zuverlässige Tests
-- **Multi-Platform**: Unterstützt AMD64 und ARM64 Architekturen
+- **Backend**: Python Flask with SQLite database
+- **Frontend**: Responsive HTML with Chart.js visualizations
+- **Container**: Alpine Linux (Python 3.12) for minimal footprint
+- **Monitoring**: HTTP requests with 5s timeout for reliable tests
+- **Multi-Platform**: Supports AMD64 and ARM64 architectures
 
 ## 🔗 Links
 
@@ -170,9 +170,9 @@ docker run -d --memory=128m --cpus=0.5 syntaxsorcerer7/internet-monitor
 - **Issues & Support**: [GitHub Issues](https://github.com/SyntaxSorcerer7/internet-check/issues)
 - **Docker Hub**: [syntaxsorcerer7/internet-monitor](https://hub.docker.com/r/syntaxsorcerer7/internet-monitor)
 
-## 📝 Lizenz
+## 📝 License
 
-Dieses Projekt steht unter der **MIT-Lizenz**.
+This project is licensed under the **MIT License**.
 
 ---
 
