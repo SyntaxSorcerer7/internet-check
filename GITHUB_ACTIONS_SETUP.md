@@ -25,26 +25,77 @@ Um die automatische Container-Erstellung und -Veröffentlichung zu aktivieren, m
 6. Kopiere den generierten Token
 7. Füge ihn als `DOCKERHUB_TOKEN` Secret in GitHub hinzu
 
-## 🚀 Workflow-Features
+## 🚀 Automatisches Release-System
 
-Die GitHub Action wird automatisch ausgelöst bei:
+Das Projekt verwendet ein vollautomatisches Release-System mit zwei GitHub Actions:
 
-- **Push zu main branch**: Erstellt `latest` Tag
-- **Git Tags** (z.B. `v1.0.0`): Erstellt entsprechende Docker Tags
-- **Pull Requests**: Testet den Build ohne zu veröffentlichen
-- **Manueller Trigger**: Über GitHub UI ausführbar
+### 📦 Release Workflow (`release.yml`)
 
-### 🏷️ Tag-Schema
+**Trigger:**
 
-| Git Event | Docker Tags |
-|-----------|-------------|
-| `push main` | `latest` |
-| `git tag v1.2.3` | `v1.2.3`, `1.2`, `1` |
-| `pull request` | Nur Build-Test |
+- **Automatisch**: Bei jedem Push zur `main`-Branch
+- **Manuell**: Über GitHub UI mit wählbarem Version-Type
+
+**Features:**
+
+- ✅ Automatische Semantic Versioning (major.minor.patch)
+- ✅ Git Tags mit Version erstellen
+- ✅ GitHub Releases mit Changelog
+- ✅ Docker Images mit Version-Tags
+- ✅ Multi-Platform Docker Builds (AMD64/ARM64)
+
+### 🧪 Build & Test Workflow (`docker-build-push.yml`)
+
+**Trigger:**
+
+- **Pull Requests**: Nur Build-Test ohne Publishing
+- **Manuell**: Mit Option zum Pushen nach Docker Hub
+
+### 🏷️ Version & Tag Schema
+
+| Trigger | Git Tag | Docker Tags | GitHub Release |
+|---------|---------|-------------|----------------|
+| Push main | v1.0.1 | latest, 1.0.1, 1.0, 1 | ✅ Release v1.0.1 |
+| Manual patch | v1.0.2 | latest, 1.0.2, 1.0, 1 | ✅ Release v1.0.2 |
+| Manual minor | v1.1.0 | latest, 1.1.0, 1.1, 1 | ✅ Release v1.1.0 |
+| Manual major | v2.0.0 | latest, 2.0.0, 2.0, 2 | ✅ Release v2.0.0 |
+
+### 🎯 Release erstellen
+
+#### Option 1: Automatisch (empfohlen)
+
+```bash
+# Einfach zur main branch pushen
+git add .
+git commit -m "feat: neue Feature implementiert"
+git push origin main
+
+# → Automatisch wird Patch-Version erstellt (z.B. v1.0.1)
+```
+
+#### Option 2: Manuell mit Script
+
+```bash
+# Interaktives Release-Script verwenden
+./release.sh
+
+# Wähle Version-Type:
+# 1) Patch (Bug-Fix)
+# 2) Minor (Feature)  
+# 3) Major (Breaking Change)
+```
+
+#### Option 3: Manuell über GitHub UI
+
+1. Gehe zu **Actions** → **Automatic Release and Version Tagging**
+2. Klicke **Run workflow**
+3. Wähle Version Type (patch/minor/major)
+4. Klicke **Run workflow**
 
 ### 🌐 Multi-Platform Support
 
-Der Workflow erstellt Images für:
+Alle Docker Images werden für folgende Plattformen erstellt:
+
 - **linux/amd64** (Intel/AMD x64)
 - **linux/arm64** (ARM64, Apple Silicon, Raspberry Pi)
 

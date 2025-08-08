@@ -2,47 +2,12 @@
 
 Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
 
-![Internet Mo### 🎯 Entwicklung & Anpassungen
-
-Die neue modulare Struktur ermöglicht einfache Anpassungen:
-
-```bash
-# Frontend anpassen (HTML/CSS/JavaScript)
-nano templates/index.html
-
-# Backend-Logic erweitern  
-nano monitor.py
-
-# Container neu bauen nach Änderungen
-./build-and-run.sh
-```
-
-**Vorteile der neuen Struktur:**
-
-- ✅ Bessere Code-Organisation und Lesbarkeit
-- ✅ Separate Bearbeitung von Frontend und Backend
-- ✅ Einfachere Versionskontrolle und Debugging
-- ✅ Wiederverwendbare Komponenten
-- ✅ Standard Flask-Projekt-Layout
-
-### 💻 Lokale Entwicklung
-
-```bash
-# Development-Setup
-git clone https://github.com/SyntaxSorcerer7/internet-check.git
-cd internet-check
-
-# Direkt mit Python ausführen (für Development)
-python monitor.py
-
-# Oder im Container mit Volume-Mounting für Live-Reload
-podman run --rm -p 8000:8000 -v $(pwd):/app internet-monitor
-```
-
 ![Internet Monitor Dashboard](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![Container](https://img.shields.io/badge/Container-Podman%2FDocker-blue)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
+![Release](https://img.shields.io/github/v/release/SyntaxSorcerer7/internet-check)
+![Docker](https://img.shields.io/docker/pulls/syntaxsorcerer7/internet-monitor)
 
 ## 🚀 Schnellstart
 
@@ -131,6 +96,38 @@ internet-check/
 ├── data.db                # SQLite-Datenbank (wird beim ersten Start erstellt)
 └── README.md              # Diese Dokumentation
 ```
+
+## 🏷️ Releases & Versioning
+
+Das Projekt verwendet **automatisches Semantic Versioning** mit GitHub Actions:
+
+### Automatische Releases
+- 🔄 **Jeder Push zur main-Branch** → Neue Patch-Version (z.B. v1.0.1)
+- 🐳 **Docker Images** → Automatisch auf Docker Hub gepusht
+- 📦 **GitHub Releases** → Mit Changelog und Download-Links
+
+### Manueller Release
+```bash
+# Interaktives Release-Script
+./release.sh
+
+# Oder über GitHub Actions UI
+# Wähle: patch (1.0.1) | minor (1.1.0) | major (2.0.0)
+```
+
+### Version-Tags verwenden
+```bash
+# Neueste Version (empfohlen für Entwicklung)
+docker pull syntaxsorcerer7/internet-monitor:latest
+
+# Spezifische Version (empfohlen für Produktion)
+docker pull syntaxsorcerer7/internet-monitor:1.2.3
+
+# Major.Minor (automatische Patch-Updates)
+docker pull syntaxsorcerer7/internet-monitor:1.2
+```
+
+📖 **Mehr Details:** Siehe [VERSIONING.md](VERSIONING.md) und [GITHUB_ACTIONS_SETUP.md](GITHUB_ACTIONS_SETUP.md)
 
 ## 🛠️ Technische Details
 
