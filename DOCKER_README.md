@@ -126,6 +126,47 @@ services:
 - **🔧 Troubleshooting**: Root cause analysis for connection issues
 - **📈 Capacity Planning**: Long-term trend analysis for upgrades
 
+## 🔄 Auto-Update
+
+For automatic updates of your Docker container when new versions are available, you can use the provided auto-update script from the GitHub repository:
+
+```bash
+# Clone the repository to get the auto-update script
+git clone https://github.com/SyntaxSorcerer7/internet-check.git
+cd internet-check
+
+# Make the auto-update script executable
+chmod +x auto-update.sh
+
+# Run the auto-update script (checks for updates every 5 minutes)
+./auto-update.sh
+```
+
+The `auto-update.sh` script automatically:
+- Monitors the GitHub repository for new commits
+- Pulls the latest changes when updates are detected
+- Rebuilds and restarts the Docker container with the new version
+- Logs all activities for monitoring and troubleshooting
+
+**Features:**
+- **Automatic Monitoring**: Checks for Git updates every 5 minutes
+- **Safe Updates**: Only updates when new commits are available
+- **Logging**: Comprehensive logging to `auto-update.log`
+- **PID Management**: Prevents multiple instances from running
+- **Error Handling**: Graceful error handling and recovery
+
+**Run as Background Service:**
+```bash
+# Start auto-update in background
+nohup ./auto-update.sh &
+
+# Check if running
+ps aux | grep auto-update
+
+# Stop auto-update (find PID and kill)
+kill $(cat auto-update.pid)
+```
+
 ## 🚨 Troubleshooting
 
 ### Container won't start
