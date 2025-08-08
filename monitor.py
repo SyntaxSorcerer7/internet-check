@@ -66,14 +66,19 @@ def data():
         print(f"DEBUG: Recent records (last {RETENTION} days): {len(recent_rows)}")
         rows = recent_rows
     
-    # Basis-Daten für detaillierten Verlauf - UTC-Timestamps senden
+    # UTC-Zeit für alle Berechnungen
+    now = get_utc_timestamp()
+    
+    # Basis-Daten für detaillierten Verlauf - nur letzten 12 Stunden
+    twelve_hours_ago = now - (12 * 3600)  # 12 Stunden in Sekunden
+    detail_rows = [row for row in rows if row[0] >= twelve_hours_ago]
+    
     result = {
-        "labels":[t for t,_ in rows],  # Raw UTC timestamps senden
-        "values":[u for _,u in rows]
+        "labels":[t for t,_ in detail_rows],  # Raw UTC timestamps der letzten 12h senden
+        "values":[u for _,u in detail_rows]
     }
     
     # 24-Stunden-Aggregation (letzte 24h)
-    now = get_utc_timestamp()
     current_hour_start = (now // 3600) * 3600  # Aktuelle Stunde, auf den Stundenanfang gerundet
     hourly_data = []
     
