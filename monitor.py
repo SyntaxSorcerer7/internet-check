@@ -92,19 +92,29 @@ def data():
         hour_of_day = dt.datetime.fromtimestamp(hour_start, dt.timezone.utc).hour
         hourly_data.insert(0, {"hour": hour_of_day, "uptime": uptime})
     
-    # Tages-Aggregation (letzte 30 Tage)
+    # Tages-Aggregation (letzte 30 Tage) - korrekte Kalendertage verwenden
     daily_data = []
+    current_utc_date = dt.datetime.fromtimestamp(now, dt.timezone.utc).date()
+    
     for d in range(30):
-        day_start = now - (d * 86400)
-        day_end = day_start + 86400
-        day_rows = [up for ts, up in rows if day_start <= ts < day_end]
+        # Kalendertag berechnen (d Tage zurück vom heutigen Tag)
+        target_date = current_utc_date - dt.timedelta(days=d)
+        
+        # Start und Ende des Kalendertages in UTC
+        day_start_dt = dt.datetime.combine(target_date, dt.time.min).replace(tzinfo=dt.timezone.utc)
+        day_end_dt = dt.datetime.combine(target_date, dt.time.max).replace(tzinfo=dt.timezone.utc)
+        
+        day_start = int(day_start_dt.timestamp())
+        day_end = int(day_end_dt.timestamp())
+        
+        day_rows = [up for ts, up in rows if day_start <= ts <= day_end]
         
         if day_rows:
             uptime = sum(day_rows) / len(day_rows)
         else:
             uptime = -1  # Keine Daten verfügbar
             
-        # UTC-Timestamp für Tag senden
+        # UTC-Timestamp für Tagesbeginn senden
         daily_data.insert(0, {"date": day_start, "uptime": uptime})
     
     result["hourly"] = hourly_data
