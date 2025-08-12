@@ -75,6 +75,7 @@ if podman run -d --name monitor \
   -p 8000:8000 \
   -v "$CURRENT_DIR:/data" \
   -e DB_PATH="/data/data.db" \
+  --restart unless-stopped \
   internet-monitor; then
     echo "✅ Container erfolgreich gestartet"
     echo ""
