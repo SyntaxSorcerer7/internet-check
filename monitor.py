@@ -12,6 +12,7 @@ def get_utc_timestamp():
     return int(dt.datetime.now(dt.timezone.utc).timestamp())
 
 # ────────── Backend ──────────
+
 app = Flask(__name__)
 
 def init_db():
