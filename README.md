@@ -1,6 +1,6 @@
 # Internet-Verbindungsmonitor 🌐
 
-Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
+Ein containerisiertes Internet-Monitoring-Tool, das die Verfügbarkeit Ihrer Internetverbindung sowie die Ping-Latenz kontinuierlich überwacht und in einer übersichtlichen Web-Oberfläche mit professionellen Diagrammen visualisiert.
 
 ![Internet Monitor Dashboard](https://img.shields.io/badge/Status-Production%20Ready-green)
 ![Container](https://img.shields.io/badge/Container-Podman%2FDocker-blue)
@@ -38,7 +38,7 @@ cd internet-check
 
 ### 📈 Drei Monitoring-Ebenen
 
-- **📍 Detaillierter Verlauf**: Minutengenaue Aufzeichnung aller Connectivity-Tests
+- **📍 Detaillierter Verlauf**: Minutengenaue Aufzeichnung aller Connectivity-Tests inklusive Ping-Latenz
 - **⏰ 24-Stunden-Übersicht**: Stündliche Aggregation mit Verfügbarkeitsprozenten
 - **📅 30-Tage-Übersicht**: Tägliche Langzeittrends für SLA-Monitoring
 
@@ -56,6 +56,7 @@ cd internet-check
 - **Persistente Speicherung**: SQLite-Datenbank mit automatischem Cleanup
 - **Container-Ready**: Podman/Docker-basiert ohne komplexe Abhängigkeiten
 - **Hochperformant**: Minimaler Ressourcenverbrauch durch Alpine Linux
+- **Ping-Latenzmessung**: ICMP-Ping zur Erfassung der aktuellen Latenz und Anzeige im Dashboard
 
 ## ⚙️ Konfiguration
 
@@ -161,25 +162,29 @@ Das Projekt ist jetzt modular strukturiert:
 
 ### 📊 Datenmodell
 
+Die Status-Tabelle speichert neben dem Onlinestatus auch die gemessene Ping-Latenz:
+
 ```sql
 CREATE TABLE status (
-    ts INTEGER PRIMARY KEY,  -- Unix-Timestamp (Sekunden seit 1970)
-    up INTEGER              -- 1=online, 0=offline
+    ts   INTEGER PRIMARY KEY,  -- Unix-Timestamp (Sekunden seit 1970)
+    up   INTEGER,              -- 1 = online, 0 = offline
+    ping REAL                  -- gemessene Ping-Latenz in Millisekunden
 );
 ```
 
 ### 🔗 API-Endpunkte
 
 - `GET /` - Responsive Web-Dashboard
-- `GET /data` - JSON-API mit Roh- und Aggregationsdaten
+- `GET /data` - JSON-API mit Roh- und Aggregationsdaten inklusive Ping-Latenzen (`pings`)
 
-### � Monitoring-Algorithmus
+### 🛰️ Monitoring-Algorithmus
 
 1. **HTTP-Test**: GET-Request an konfigurierte URL
-2. **Timeout-Handling**: 5 Sekunden maximale Wartezeit
-3. **Bewertung**: HTTP 2xx = Online | Timeout/Error = Offline
-4. **Speicherung**: Timestamp + Status in SQLite
-5. **Retention**: Automatisches Cleanup alter Daten
+2. **Ping-Messung**: ICMP-Ping zur Ermittlung der Latenz
+3. **Timeout-Handling**: 5 Sekunden maximale Wartezeit
+4. **Bewertung**: HTTP 2xx = Online | Timeout/Error oder fehlender Ping = Offline
+5. **Speicherung**: Timestamp + Status + Ping in SQLite
+6. **Retention**: Automatisches Cleanup alter Daten
 
 ## 💡 Anwendungsfälle
 
@@ -214,19 +219,21 @@ podman exec monitor-primary cp /app/data.db /tmp/
 podman cp monitor-primary:/tmp/data.db ./backup_$(date +%Y%m%d).db
 
 # CSV-Export für Excel-Analyse
-podman exec monitor-primary sqlite3 /app/data.db \
-  "SELECT datetime(ts, 'unixepoch') as timestamp, 
-          CASE up WHEN 1 THEN 'Online' ELSE 'Offline' END as status 
-   FROM status ORDER BY ts;" \
-  -header -csv > connectivity_report.csv
+  podman exec monitor-primary sqlite3 /app/data.db \
+    "SELECT datetime(ts, 'unixepoch') as timestamp,
+            CASE up WHEN 1 THEN 'Online' ELSE 'Offline' END as status,
+            ping
+     FROM status ORDER BY ts;" \
+    -header -csv > connectivity_report.csv
 
 # Statistiken abrufen
-podman exec monitor-primary sqlite3 /app/data.db \
-  "SELECT 
-     COUNT(*) as total_checks,
-     SUM(up) as successful_checks,
-     ROUND(SUM(up) * 100.0 / COUNT(*), 2) as uptime_percentage
-   FROM status WHERE ts >= strftime('%s', 'now', '-24 hours');"
+  podman exec monitor-primary sqlite3 /app/data.db \
+    "SELECT
+       COUNT(*) as total_checks,
+       SUM(up) as successful_checks,
+       ROUND(SUM(up) * 100.0 / COUNT(*), 2) as uptime_percentage,
+       ROUND(AVG(ping), 2) as avg_ping_ms
+     FROM status WHERE ts >= strftime('%s', 'now', '-24 hours');"
 ```
 
 ## 📊 SLA-Referenztabelle

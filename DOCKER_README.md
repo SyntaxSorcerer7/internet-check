@@ -4,7 +4,7 @@
 ![Docker Image Size](https://img.shields.io/docker/image-size/syntaxsorcerer7/internet-monitor)
 ![Docker Stars](https://img.shields.io/docker/stars/syntaxsorcerer7/internet-monitor)
 
-A containerized internet monitoring tool that continuously tracks your internet connection availability and visualizes it in a clear web interface with professional charts.
+A containerized internet monitoring tool that continuously tracks your internet connection availability and ping latency and visualizes it in a clear web interface with professional charts.
 
 ## 🚀 Quick Start
 
@@ -22,8 +22,8 @@ open http://localhost:8000
 ## 📊 Features
 
 ### 📈 Three Monitoring Levels
-- **📍 Detailed History**: Minute-by-minute recording of all connectivity tests
-- **⏰ 24-Hour Overview**: Hourly aggregation with availability percentages  
+- **📍 Detailed History**: Minute-by-minute recording of all connectivity tests including ping latency
+- **⏰ 24-Hour Overview**: Hourly aggregation with availability percentages
 - **📅 30-Day Overview**: Daily long-term trends for SLA monitoring
 
 ### 🎯 Professional Availability Levels
@@ -38,6 +38,7 @@ open http://localhost:8000
 - **Persistent Storage**: SQLite database with automatic cleanup
 - **Multi-Platform**: Supports AMD64 and ARM64 (Raspberry Pi, Apple Silicon)
 - **High Performance**: Minimal resource usage through Alpine Linux
+- **Ping Latency Measurement**: ICMP ping to capture latency and display in dashboard
 
 ## ⚙️ Configuration
 
