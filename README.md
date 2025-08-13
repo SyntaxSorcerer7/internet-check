@@ -39,8 +39,8 @@ cd internet-check
 ### 📈 Drei Monitoring-Ebenen
 
 - **📍 Detaillierter Verlauf**: Minutengenaue Aufzeichnung aller Connectivity-Tests inklusive Ping-Latenz
-- **⏰ 24-Stunden-Übersicht**: Stündliche Aggregation mit Verfügbarkeitsprozenten
-- **📅 30-Tage-Übersicht**: Tägliche Langzeittrends für SLA-Monitoring
+- **⏰ 24-Stunden-Übersicht**: Stündliche Aggregation mit Verfügbarkeitsprozenten sowie durchschnittlicher und 99%-Perzentil-Ping
+- **📅 30-Tage-Übersicht**: Tägliche Langzeittrends inklusive durchschnittlicher und 99%-Perzentil-Ping-Latenz für SLA-Monitoring
 
 ### 🎯 Professionelle Verfügbarkeitsstufen
 
@@ -179,10 +179,10 @@ CREATE TABLE status (
 
 ### 🛰️ Monitoring-Algorithmus
 
-1. **HTTP-Test**: GET-Request an konfigurierte URL
-2. **Ping-Messung**: ICMP-Ping zur Ermittlung der Latenz
+1. **Ping-Messung**: ICMP-Ping zur Ermittlung der Latenz
+2. **HTTP-Test**: GET-Request an die konfigurierte URL
 3. **Timeout-Handling**: 5 Sekunden maximale Wartezeit
-4. **Bewertung**: HTTP 2xx = Online | Timeout/Error oder fehlender Ping = Offline
+4. **Bewertung**: HTTP 2xx = Online, sonst Offline
 5. **Speicherung**: Timestamp + Status + Ping in SQLite
 6. **Retention**: Automatisches Cleanup alter Daten
 

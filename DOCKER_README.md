@@ -23,8 +23,8 @@ open http://localhost:8000
 
 ### 📈 Three Monitoring Levels
 - **📍 Detailed History**: Minute-by-minute recording of all connectivity tests including ping latency
-- **⏰ 24-Hour Overview**: Hourly aggregation with availability percentages
-- **📅 30-Day Overview**: Daily long-term trends for SLA monitoring
+- **⏰ 24-Hour Overview**: Hourly aggregation with availability percentages plus average and 99th percentile ping
+- **📅 30-Day Overview**: Daily long-term trends including average and 99th percentile ping for SLA monitoring
 
 ### 🎯 Professional Availability Levels
 - 🟢 **Excellent** (≥99.9%): Enterprise-grade availability

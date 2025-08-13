@@ -1,5 +1,5 @@
 import os, time, threading, sqlite3, datetime as dt, requests
-import subprocess, urllib.parse, re
+import subprocess, urllib.parse, re, math
 from flask import Flask, jsonify, Response, render_template
 
 # ────────── Konfiguration via ENV ──────────
@@ -40,13 +40,10 @@ def init_db():
 
 def write_sample():
     """Einen Connectivity-Datensatz schreiben und alte Daten trimmen."""
+    ping_ms = ping_host()  # Ping immer messen, unabhängig vom HTTP-Test
     up = 1
-    ping_ms = None
     try:
         requests.get(TEST_URL, timeout=5)
-        ping_ms = ping_host()
-        if ping_ms is None:
-            up = 0
     except requests.RequestException:
         up = 0
     
@@ -105,21 +102,30 @@ def data():
     # 24-Stunden-Aggregation (letzte 24h)
     current_hour_start = (now // 3600) * 3600  # Aktuelle Stunde, auf den Stundenanfang gerundet
     hourly_data = []
-    
+
     for h in range(24):
         # Von der aktuellen Stunde 23 Stunden zurückgehen
         hour_start = current_hour_start - (h * 3600)
         hour_end = hour_start + 3600
-        hour_rows = [up for ts, up, _ in rows if hour_start <= ts < hour_end]
-        
+        hour_rows = [(up, ping) for ts, up, ping in rows if hour_start <= ts < hour_end]
+
         if hour_rows:
-            uptime = sum(hour_rows) / len(hour_rows)
+            ups = [u for u, _ in hour_rows]
+            pings = [p for _, p in hour_rows if p is not None]
+            uptime = sum(ups) / len(ups)
+            ping_avg = sum(pings) / len(pings) if pings else None
+            if pings:
+                k = max(0, min(len(pings)-1, math.ceil(len(pings) * 0.99) - 1))
+                ping_p99 = sorted(pings)[k]
+            else:
+                ping_p99 = None
         else:
             uptime = -1  # Keine Daten verfügbar
-            
+            ping_avg = ping_p99 = None
+
         # Nur die Stunde des Tages (0-23) senden
         hour_of_day = dt.datetime.fromtimestamp(hour_start, dt.timezone.utc).hour
-        hourly_data.insert(0, {"hour": hour_of_day, "uptime": uptime})
+        hourly_data.insert(0, {"hour": hour_of_day, "uptime": uptime, "ping_avg": ping_avg, "ping_p99": ping_p99})
     
     # Tages-Aggregation (letzte 30 Tage) - korrekte Kalendertage verwenden
     daily_data = []
@@ -128,23 +134,32 @@ def data():
     for d in range(30):
         # Kalendertag berechnen (d Tage zurück vom heutigen Tag)
         target_date = current_utc_date - dt.timedelta(days=d)
-        
+
         # Start und Ende des Kalendertages in UTC
         day_start_dt = dt.datetime.combine(target_date, dt.time.min).replace(tzinfo=dt.timezone.utc)
         day_end_dt = dt.datetime.combine(target_date, dt.time.max).replace(tzinfo=dt.timezone.utc)
-        
+
         day_start = int(day_start_dt.timestamp())
         day_end = int(day_end_dt.timestamp())
-        
-        day_rows = [up for ts, up, _ in rows if day_start <= ts <= day_end]
-        
+
+        day_rows = [(up, ping) for ts, up, ping in rows if day_start <= ts <= day_end]
+
         if day_rows:
-            uptime = sum(day_rows) / len(day_rows)
+            ups = [u for u, _ in day_rows]
+            pings = [p for _, p in day_rows if p is not None]
+            uptime = sum(ups) / len(ups)
+            ping_avg = sum(pings) / len(pings) if pings else None
+            if pings:
+                k = max(0, min(len(pings)-1, math.ceil(len(pings) * 0.99) - 1))
+                ping_p99 = sorted(pings)[k]
+            else:
+                ping_p99 = None
         else:
             uptime = -1  # Keine Daten verfügbar
-            
+            ping_avg = ping_p99 = None
+
         # UTC-Timestamp für Tagesbeginn senden
-        daily_data.insert(0, {"date": day_start, "uptime": uptime})
+        daily_data.insert(0, {"date": day_start, "uptime": uptime, "ping_avg": ping_avg, "ping_p99": ping_p99})
     
     result["hourly"] = hourly_data
     result["daily"] = daily_data
