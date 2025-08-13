@@ -1,4 +1,5 @@
 import os, time, threading, sqlite3, datetime as dt, requests
+import subprocess, urllib.parse, re
 from flask import Flask, jsonify, Response, render_template
 
 # ────────── Konfiguration via ENV ──────────
@@ -11,6 +12,19 @@ def get_utc_timestamp():
     """UTC-Timestamp zurückgeben (immer UTC, unabhängig von Container-Zeitzone)"""
     return int(dt.datetime.now(dt.timezone.utc).timestamp())
 
+def ping_host():
+    """Einmaliges Ping auf das TEST_URL-Host ausführen und Laufzeit in ms zurückgeben."""
+    host = urllib.parse.urlparse(TEST_URL).hostname or TEST_URL
+    try:
+        r = subprocess.run(["ping", "-c", "1", "-W", "1", host], capture_output=True, text=True)
+        if r.returncode == 0:
+            m = re.search(r"time=([0-9.]+) ms", r.stdout)
+            if m:
+                return float(m.group(1))
+    except Exception:
+        pass
+    return None
+
 # ────────── Backend ──────────
 
 app = Flask(__name__)
@@ -18,20 +32,28 @@ app = Flask(__name__)
 def init_db():
     """Tabelle anlegen, falls sie noch nicht existiert."""
     with sqlite3.connect(DB_PATH) as c:
-        c.execute("CREATE TABLE IF NOT EXISTS status(ts INTEGER PRIMARY KEY, up INTEGER)")
+        c.execute("CREATE TABLE IF NOT EXISTS status(ts INTEGER PRIMARY KEY, up INTEGER, ping REAL)")
+        try:
+            c.execute("ALTER TABLE status ADD COLUMN ping REAL")
+        except sqlite3.OperationalError:
+            pass
 
 def write_sample():
     """Einen Connectivity-Datensatz schreiben und alte Daten trimmen."""
     up = 1
-    try: 
+    ping_ms = None
+    try:
         requests.get(TEST_URL, timeout=5)
-    except requests.RequestException: 
+        ping_ms = ping_host()
+        if ping_ms is None:
+            up = 0
+    except requests.RequestException:
         up = 0
     
     now = get_utc_timestamp()  # UTC-Timestamp verwenden
     with sqlite3.connect(DB_PATH) as c:
         # INSERT OR REPLACE verwenden um Duplikate zu vermeiden
-        c.execute("INSERT OR REPLACE INTO status VALUES(?,?)", (now, up))
+        c.execute("INSERT OR REPLACE INTO status(ts,up,ping) VALUES(?,?,?)", (now, up, ping_ms))
         # Alte Daten löschen - aber nur sehr alte (älter als RETENTION)
         cutoff = now - RETENTION*86400
         deleted = c.execute("DELETE FROM status WHERE ts < ?", (cutoff,)).rowcount
@@ -52,7 +74,7 @@ def index():
 def data():
     # Alle Daten holen (ohne since Filter) um das Problem zu debuggen
     with sqlite3.connect(DB_PATH) as c:
-        rows = c.execute("SELECT ts,up FROM status ORDER BY ts").fetchall()
+        rows = c.execute("SELECT ts,up,ping FROM status ORDER BY ts").fetchall()
         total_count = c.execute("SELECT COUNT(*) FROM status").fetchone()[0]
     
     print(f"DEBUG: Total records: {total_count}, All records: {len(rows)}")
@@ -73,10 +95,11 @@ def data():
     # Basis-Daten für detaillierten Verlauf - nur letzten 12 Stunden
     twelve_hours_ago = now - (12 * 3600)  # 12 Stunden in Sekunden
     detail_rows = [row for row in rows if row[0] >= twelve_hours_ago]
-    
+
     result = {
-        "labels":[t for t,_ in detail_rows],  # Raw UTC timestamps der letzten 12h senden
-        "values":[u for _,u in detail_rows]
+        "labels":[t for t,_,_ in detail_rows],  # Raw UTC timestamps der letzten 12h senden
+        "values":[u for _,u,_ in detail_rows],
+        "pings":[p for _,_,p in detail_rows]
     }
     
     # 24-Stunden-Aggregation (letzte 24h)
@@ -87,7 +110,7 @@ def data():
         # Von der aktuellen Stunde 23 Stunden zurückgehen
         hour_start = current_hour_start - (h * 3600)
         hour_end = hour_start + 3600
-        hour_rows = [up for ts, up in rows if hour_start <= ts < hour_end]
+        hour_rows = [up for ts, up, _ in rows if hour_start <= ts < hour_end]
         
         if hour_rows:
             uptime = sum(hour_rows) / len(hour_rows)
@@ -113,7 +136,7 @@ def data():
         day_start = int(day_start_dt.timestamp())
         day_end = int(day_end_dt.timestamp())
         
-        day_rows = [up for ts, up in rows if day_start <= ts <= day_end]
+        day_rows = [up for ts, up, _ in rows if day_start <= ts <= day_end]
         
         if day_rows:
             uptime = sum(day_rows) / len(day_rows)

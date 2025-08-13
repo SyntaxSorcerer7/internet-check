@@ -65,11 +65,12 @@ function formatDayLabel(utcTimestamp) {
 
 async function reloadData(){
   const r = await fetch('/data');
-  const {labels,values,hourly,daily} = await r.json();
+  const {labels,values,pings,hourly,daily} = await r.json();
 
   // Set status text
+  const lastPing = pings.length ? pings.at(-1) : null;
   const statusTxt = values.length
-        ? (values.at(-1) ? '🟢 Connection up' : '🔴 No connection')
+        ? (values.at(-1) ? `🟢 Connection up${lastPing!==null?` (ping ${lastPing} ms)`:''}` : '🔴 No connection')
         : 'No data yet';
   document.getElementById('status').textContent = statusTxt;
 
@@ -80,15 +81,20 @@ async function reloadData(){
     chart = new Chart(document.getElementById('c'),{
       type:'line',
       data:{labels:localLabels,
-            datasets:[{label:'Online Status',data:values,stepped:true,fill:true}]},
+            datasets:[
+              {label:'Online Status',data:values,stepped:true,fill:true,yAxisID:'y'},
+              {label:'Ping (ms)',data:pings,borderColor:'#3b82f6',yAxisID:'y1'}
+            ]},
       options:{scales:{
         y:{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'Online':'Offline'}},
+        y1:{position:'right',beginAtZero:true},
         x:{type:'time',time:{unit:'hour'}}
       }}
     });
   }else{
     chart.data.labels = localLabels;
     chart.data.datasets[0].data = values;
+    chart.data.datasets[1].data = pings;
     chart.update();
   }
   
