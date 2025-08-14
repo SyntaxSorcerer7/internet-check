@@ -53,6 +53,7 @@ cd internet-check
 
 - **Echtzeit-Updates**: Automatische Diagramm-Aktualisierung alle 60 Sekunden
 - **Responsive Design**: Optimiert für Desktop, Tablet und Mobile
+- **Umschaltbare Diagramme**: Verfügbarkeit und Ping lassen sich getrennt anzeigen
 - **Persistente Speicherung**: SQLite-Datenbank mit automatischem Cleanup
 - **Container-Ready**: Podman/Docker-basiert ohne komplexe Abhängigkeiten
 - **Hochperformant**: Minimaler Ressourcenverbrauch durch Alpine Linux

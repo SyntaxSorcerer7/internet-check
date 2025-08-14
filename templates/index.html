@@ -10,12 +10,13 @@
   .legend{background:#f5f5f5;padding:1rem;border-radius:8px;margin-bottom:2rem}
   .legend-item{display:inline-block;margin-right:2rem;margin-bottom:0.5rem}
   .legend-color{display:inline-block;width:20px;height:15px;margin-right:8px;vertical-align:middle;border-radius:3px}
+  .toggle-btn{margin-bottom:0.5rem}
 </style></head>
 
 <body>
   <h1>Internet Connection Monitor</h1>
   <p id=status>Starting…</p>
-  
+
   <div class="legend">
     <strong>Availability Levels:</strong><br>
     <div class="legend-item"><span class="legend-color" style="background:#4ade80"></span>Excellent (≥99.9%)</div>
@@ -23,24 +24,54 @@
     <div class="legend-item"><span class="legend-color" style="background:#ef4444"></span>Problematic (<98%)</div>
     <div class="legend-item"><span class="legend-color" style="background:#3b82f6"></span>No Data</div>
   </div>
-  
+
   <div class="chart-container">
     <div class="chart-title">Detailed Timeline</div>
-    <canvas id=c height=80></canvas>
+    <button id=toggleDetailed class=toggle-btn>Show Ping</button>
+    <canvas id=detailAvailability height=80></canvas>
+    <canvas id=detailPing height=80 style="display:none"></canvas>
   </div>
-  
+
   <div class="chart-container">
     <div class="chart-title">24-Hour Overview (last 24h)</div>
-    <canvas id=hourlyChart height=60></canvas>
+    <button id=toggleHourly class=toggle-btn>Show Ping</button>
+    <canvas id=hourlyAvailability height=60></canvas>
+    <canvas id=hourlyPing height=60 style="display:none"></canvas>
   </div>
-  
+
   <div class="chart-container">
     <div class="chart-title">Daily Overview (last 30 days)</div>
-    <canvas id=dailyChart height=60></canvas>
+    <button id=toggleDaily class=toggle-btn>Show Ping</button>
+    <canvas id=dailyAvailability height=60></canvas>
+    <canvas id=dailyPing height=60 style="display:none"></canvas>
   </div>
 
 <script>
-let chart=null, hourlyChart=null, dailyChart=null;
+let detailAvailChart=null, detailPingChart=null;
+let hourlyAvailChart=null, hourlyPingChart=null;
+let dailyAvailChart=null, dailyPingChart=null;
+
+function setupToggle(btnId, availId, pingId){
+  const btn=document.getElementById(btnId);
+  const availCanvas=document.getElementById(availId);
+  const pingCanvas=document.getElementById(pingId);
+  btn.addEventListener('click',()=>{
+    const showingPing=pingCanvas.style.display!=='none';
+    if(showingPing){
+      pingCanvas.style.display='none';
+      availCanvas.style.display='block';
+      btn.textContent='Show Ping';
+    }else{
+      pingCanvas.style.display='block';
+      availCanvas.style.display='none';
+      btn.textContent='Show Availability';
+    }
+  });
+}
+
+setupToggle('toggleDetailed','detailAvailability','detailPing');
+setupToggle('toggleHourly','hourlyAvailability','hourlyPing');
+setupToggle('toggleDaily','dailyAvailability','dailyPing');
 
 // Helper: convert UTC timestamp to local time
 function utcToLocal(utcTimestamp) {
@@ -76,171 +107,121 @@ async function reloadData(){
 
   // Detailed timeline - convert UTC timestamps to local times
   const localLabels = labels.map(utcTimestamp => utcToLocal(utcTimestamp).toISOString());
-  
-  if(!chart){
-    chart = new Chart(document.getElementById('c'),{
+
+  if(!detailAvailChart){
+    detailAvailChart = new Chart(document.getElementById('detailAvailability'),{
       type:'line',
       data:{labels:localLabels,
-            datasets:[
-              {label:'Online Status',data:values,stepped:true,fill:true,yAxisID:'y'},
-              {label:'Ping (ms)',data:pings,borderColor:'#3b82f6',yAxisID:'y1'}
-            ]},
-      options:{scales:{
-        y:{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'Online':'Offline'}},
-        y1:{position:'right',beginAtZero:true},
-        x:{type:'time',time:{unit:'hour'}}
-      }}
+            datasets:[{label:'Online Status',data:values,stepped:true,fill:true,yAxisID:'y'}]},
+      options:{scales:{y:{min:0,max:1,ticks:{stepSize:1,callback:v=>v?'Online':'Offline'}},
+                       x:{type:'time',time:{unit:'hour'}}}}
     });
   }else{
-    chart.data.labels = localLabels;
-    chart.data.datasets[0].data = values;
-    chart.data.datasets[1].data = pings;
-    chart.update();
+    detailAvailChart.data.labels = localLabels;
+    detailAvailChart.data.datasets[0].data = values;
+    detailAvailChart.update();
   }
-  
-  // 24-hour chart - convert UTC to local time
+
+  if(!detailPingChart){
+    detailPingChart = new Chart(document.getElementById('detailPing'),{
+      type:'line',
+      data:{labels:localLabels,
+            datasets:[{label:'Ping (ms)',data:pings,borderColor:'#3b82f6'}]},
+      options:{scales:{y:{beginAtZero:true},x:{type:'time',time:{unit:'hour'}}}}
+    });
+  }else{
+    detailPingChart.data.labels = localLabels;
+    detailPingChart.data.datasets[0].data = pings;
+    detailPingChart.update();
+  }
+
+  // 24-hour charts
   if(hourly && hourly.length){
-    if(!hourlyChart){
-      hourlyChart = new Chart(document.getElementById('hourlyChart'),{
+    // Availability
+    if(!hourlyAvailChart){
+      hourlyAvailChart = new Chart(document.getElementById('hourlyAvailability'),{
         type:'bar',
         data:{
           labels:hourly.map(h=>h.uptime<0 ? formatHourLabel(h.hour)+' ?' : formatHourLabel(h.hour)),
-          datasets:[
-            {
-              label:'Hourly Status',
-              data:hourly.map(h=>h.uptime<0?0.5:h.uptime),
-              backgroundColor:hourly.map(h=>h.uptime<0?'#3b82f6':(h.uptime>=0.999?'#4ade80':(h.uptime>=0.98?'#eab308':'#ef4444'))),
-              borderWidth:0,
-              yAxisID:'y'
-            },
-            {
-              label:'Avg Ping (ms)',
-              data:hourly.map(h=>h.ping_avg),
-              type:'line',
-              borderColor:'#3b82f6',
-              backgroundColor:'transparent',
-              yAxisID:'y1',
-              tension:0.4
-            },
-            {
-              label:'99th % Ping (ms)',
-              data:hourly.map(h=>h.ping_p99),
-              type:'line',
-              borderColor:'#9333ea',
-              backgroundColor:'transparent',
-              borderDash:[5,5],
-              yAxisID:'y1',
-              tension:0.4
-            }
-          ]
+          datasets:[{
+            label:'Hourly Status',
+            data:hourly.map(h=>h.uptime<0?0.5:h.uptime),
+            backgroundColor:hourly.map(h=>h.uptime<0?'#3b82f6':(h.uptime>=0.999?'#4ade80':(h.uptime>=0.98?'#eab308':'#ef4444'))),
+            borderWidth:0
+          }]
         },
-        options:{
-          responsive:true,
-          scales:{
-            y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
-            y1:{position:'right',beginAtZero:true,title:{display:true,text:'Ping (ms)'}},
-            x:{title:{display:true,text:'Hour (local time)'}}
-          },
-          plugins:{
-            tooltip:{
-              callbacks:{
-                label:ctx=>{
-                  const hourData = hourly[ctx.dataIndex];
-                  if(ctx.dataset.label==='Hourly Status'){
-                    return hourData.uptime<0 ? 'No data available' : `Availability: ${(ctx.parsed.y*100).toFixed(1)}%`;
-                  }
-                  if(ctx.dataset.label==='Avg Ping (ms)'){
-                    return hourData.ping_avg==null ? 'Avg ping: n/a' : `Avg ping: ${hourData.ping_avg.toFixed(1)} ms`;
-                  }
-                  if(ctx.dataset.label==='99th % Ping (ms)'){
-                    return hourData.ping_p99==null ? '99th % ping: n/a' : `99th % ping: ${hourData.ping_p99.toFixed(1)} ms`;
-                  }
-                }
-              }
-            }
-          }
-        }
+        options:{responsive:true,scales:{y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
+                                         x:{title:{display:true,text:'Hour (local time)'}}}}
       });
     }else{
-      hourlyChart.data.labels = hourly.map(h=>h.uptime<0 ? formatHourLabel(h.hour)+' ?' : formatHourLabel(h.hour));
-      hourlyChart.data.datasets[0].data = hourly.map(h=>h.uptime<0?0.5:h.uptime);
-      hourlyChart.data.datasets[0].backgroundColor = hourly.map(h=>h.uptime<0?'#3b82f6':(h.uptime>=0.999?'#4ade80':(h.uptime>=0.98?'#eab308':'#ef4444')));
-      hourlyChart.data.datasets[1].data = hourly.map(h=>h.ping_avg);
-      hourlyChart.data.datasets[2].data = hourly.map(h=>h.ping_p99);
-      hourlyChart.update();
+      hourlyAvailChart.data.labels = hourly.map(h=>h.uptime<0 ? formatHourLabel(h.hour)+' ?' : formatHourLabel(h.hour));
+      hourlyAvailChart.data.datasets[0].data = hourly.map(h=>h.uptime<0?0.5:h.uptime);
+      hourlyAvailChart.data.datasets[0].backgroundColor = hourly.map(h=>h.uptime<0?'#3b82f6':(h.uptime>=0.999?'#4ade80':(h.uptime>=0.98?'#eab308':'#ef4444')));
+      hourlyAvailChart.update();
+    }
+
+    // Ping
+    if(!hourlyPingChart){
+      hourlyPingChart = new Chart(document.getElementById('hourlyPing'),{
+        type:'line',
+        data:{
+          labels:hourly.map(h=>formatHourLabel(h.hour)),
+          datasets:[
+            {label:'Avg Ping (ms)',data:hourly.map(h=>h.ping_avg),borderColor:'#3b82f6',tension:0.4},
+            {label:'99th % Ping (ms)',data:hourly.map(h=>h.ping_p99),borderColor:'#9333ea',borderDash:[5,5],tension:0.4}
+          ]},
+        options:{responsive:true,scales:{y:{beginAtZero:true},x:{title:{display:true,text:'Hour (local time)'}}}}
+      });
+    }else{
+      hourlyPingChart.data.labels = hourly.map(h=>formatHourLabel(h.hour));
+      hourlyPingChart.data.datasets[0].data = hourly.map(h=>h.ping_avg);
+      hourlyPingChart.data.datasets[1].data = hourly.map(h=>h.ping_p99);
+      hourlyPingChart.update();
     }
   }
-  
-  // Daily chart - convert UTC to local time
+
+  // Daily charts
   if(daily && daily.length){
-    if(!dailyChart){
-      dailyChart = new Chart(document.getElementById('dailyChart'),{
+    // Availability
+    if(!dailyAvailChart){
+      dailyAvailChart = new Chart(document.getElementById('dailyAvailability'),{
         type:'bar',
         data:{
           labels:daily.map(d=>d.uptime<0 ? formatDayLabel(d.date)+' ?' : formatDayLabel(d.date)),
-          datasets:[
-            {
-              label:'Daily Status',
-              data:daily.map(d=>d.uptime<0?0.5:d.uptime),
-              backgroundColor:daily.map(d=>d.uptime<0?'#3b82f6':(d.uptime>=0.999?'#4ade80':(d.uptime>=0.98?'#eab308':'#ef4444'))),
-              borderWidth:0,
-              yAxisID:'y'
-            },
-            {
-              label:'Avg Ping (ms)',
-              data:daily.map(d=>d.ping_avg),
-              type:'line',
-              borderColor:'#3b82f6',
-              backgroundColor:'transparent',
-              yAxisID:'y1',
-              tension:0.4
-            },
-            {
-              label:'99th % Ping (ms)',
-              data:daily.map(d=>d.ping_p99),
-              type:'line',
-              borderColor:'#9333ea',
-              backgroundColor:'transparent',
-              borderDash:[5,5],
-              yAxisID:'y1',
-              tension:0.4
-            }
-          ]
+          datasets:[{
+            label:'Daily Status',
+            data:daily.map(d=>d.uptime<0?0.5:d.uptime),
+            backgroundColor:daily.map(d=>d.uptime<0?'#3b82f6':(d.uptime>=0.999?'#4ade80':(d.uptime>=0.98?'#eab308':'#ef4444'))),
+            borderWidth:0
+          }]
         },
-        options:{
-          responsive:true,
-          scales:{
-            y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
-            y1:{position:'right',beginAtZero:true,title:{display:true,text:'Ping (ms)'}},
-            x:{title:{display:true,text:'Day (local time)'}}
-          },
-          plugins:{
-            tooltip:{
-              callbacks:{
-                label:ctx=>{
-                  const dayData = daily[ctx.dataIndex];
-                  if(ctx.dataset.label==='Daily Status'){
-                    return dayData.uptime<0 ? 'No data available' : `Availability: ${(ctx.parsed.y*100).toFixed(1)}%`;
-                  }
-                  if(ctx.dataset.label==='Avg Ping (ms)'){
-                    return dayData.ping_avg==null ? 'Avg ping: n/a' : `Avg ping: ${dayData.ping_avg.toFixed(1)} ms`;
-                  }
-                  if(ctx.dataset.label==='99th % Ping (ms)'){
-                    return dayData.ping_p99==null ? '99th % ping: n/a' : `99th % ping: ${dayData.ping_p99.toFixed(1)} ms`;
-                  }
-                }
-              }
-            }
-          }
-        }
+        options:{responsive:true,scales:{y:{min:0,max:1,ticks:{stepSize:0.2,callback:v=>(v*100).toFixed(0)+'%'}},
+                                         x:{title:{display:true,text:'Day (local time)'}}}}
       });
     }else{
-      dailyChart.data.labels = daily.map(d=>d.uptime<0 ? formatDayLabel(d.date)+' ?' : formatDayLabel(d.date));
-      dailyChart.data.datasets[0].data = daily.map(d=>d.uptime<0?0.5:d.uptime);
-      dailyChart.data.datasets[0].backgroundColor = daily.map(d=>d.uptime<0?'#3b82f6':(d.uptime>=0.999?'#4ade80':(d.uptime>=0.98?'#eab308':'#ef4444')));
-      dailyChart.data.datasets[1].data = daily.map(d=>d.ping_avg);
-      dailyChart.data.datasets[2].data = daily.map(d=>d.ping_p99);
-      dailyChart.update();
+      dailyAvailChart.data.labels = daily.map(d=>d.uptime<0 ? formatDayLabel(d.date)+' ?' : formatDayLabel(d.date));
+      dailyAvailChart.data.datasets[0].data = daily.map(d=>d.uptime<0?0.5:d.uptime);
+      dailyAvailChart.data.datasets[0].backgroundColor = daily.map(d=>d.uptime<0?'#3b82f6':(d.uptime>=0.999?'#4ade80':(d.uptime>=0.98?'#eab308':'#ef4444')));
+      dailyAvailChart.update();
+    }
+
+    // Ping
+    if(!dailyPingChart){
+      dailyPingChart = new Chart(document.getElementById('dailyPing'),{
+        type:'line',
+        data:{
+          labels:daily.map(d=>formatDayLabel(d.date)),
+          datasets:[
+            {label:'Avg Ping (ms)',data:daily.map(d=>d.ping_avg),borderColor:'#3b82f6',tension:0.4},
+            {label:'99th % Ping (ms)',data:daily.map(d=>d.ping_p99),borderColor:'#9333ea',borderDash:[5,5],tension:0.4}
+          ]},
+        options:{responsive:true,scales:{y:{beginAtZero:true},x:{title:{display:true,text:'Day (local time)'}}}}
+      });
+    }else{
+      dailyPingChart.data.labels = daily.map(d=>formatDayLabel(d.date));
+      dailyPingChart.data.datasets[0].data = daily.map(d=>d.ping_avg);
+      dailyPingChart.data.datasets[1].data = daily.map(d=>d.ping_p99);
+      dailyPingChart.update();
     }
   }
 }

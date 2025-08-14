@@ -35,6 +35,7 @@ open http://localhost:8000
 ### ⚡ Technical Highlights
 - **Real-time Updates**: Automatic chart refresh every 60 seconds
 - **Responsive Design**: Optimized for desktop, tablet, and mobile
+- **Toggleable Charts**: Switch between availability and ping views
 - **Persistent Storage**: SQLite database with automatic cleanup
 - **Multi-Platform**: Supports AMD64 and ARM64 (Raspberry Pi, Apple Silicon)
 - **High Performance**: Minimal resource usage through Alpine Linux
